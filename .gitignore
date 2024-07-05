@@ -23,11 +23,6 @@
 hs_err_pid*
 replay_pid*
 
-**/.vscode/
-**/devel/
-**/build/
-
-idea
 *.iml
 out
 gen
