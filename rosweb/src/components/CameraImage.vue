@@ -6,8 +6,6 @@
     <div id="main-content">
       <div id="image-container">
         <img id="image-viewer" />
-<<<<<<< HEAD
-=======
         <div id="keyboard-teleop">
           <div class="keyboard-container">
             <div class="keys">
@@ -22,7 +20,6 @@
             <p v-if="lastKey" class="key-press">You pressed: {{ lastKey }}</p>
           </div>
         </div>
->>>>>>> origin/simulation
       </div>
     </div>
   </div>
@@ -35,41 +32,27 @@ export default {
     return {
       lastUpdate: 0,
       updateInterval: 100, // 设置更新间隔为100毫秒
-<<<<<<< HEAD
-      imageTopic: null
-=======
       imageTopic: null,
       ros: null,
       cmdVel: null,
       lastKey: null
->>>>>>> origin/simulation
     };
   },
   mounted() {
     this.loadScripts().then(() => {
       this.init();
-<<<<<<< HEAD
-=======
       this.setupKeyboardControls();
->>>>>>> origin/simulation
     }).catch(error => {
       console.error("Error loading scripts:", error);
     });
   },
   beforeDestroy() {
-<<<<<<< HEAD
-    // 在组件销毁时取消订阅图像话题
-    if (this.imageTopic) {
-      this.imageTopic.unsubscribe();
-    }
-=======
     // 在组件销毁时取消订阅图像话题和移除键盘事件监听器
     if (this.imageTopic) {
       this.imageTopic.unsubscribe();
     }
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keyup', this.handleKeyUp);
->>>>>>> origin/simulation
   },
   methods: {
     loadScripts() {
@@ -90,27 +73,17 @@ export default {
       );
     },
     init() {
-<<<<<<< HEAD
-      const ros = new window.ROSLIB.Ros({
-=======
       this.ros = new window.ROSLIB.Ros({
->>>>>>> origin/simulation
         url: 'ws://localhost:9090'
       });
 
       this.imageTopic = new window.ROSLIB.Topic({
-<<<<<<< HEAD
-        ros: ros,
-=======
         ros: this.ros,
->>>>>>> origin/simulation
         name: '/camera/image_raw/compressed',
         messageType: 'sensor_msgs/CompressedImage'
       });
 
       this.imageTopic.subscribe(this.displayImage);
-<<<<<<< HEAD
-=======
 
       // Initialize cmdVel topic
       this.cmdVel = new window.ROSLIB.Topic({
@@ -118,7 +91,6 @@ export default {
         name: '/cmd_vel',
         messageType: 'geometry_msgs/Twist'
       });
->>>>>>> origin/simulation
     },
     displayImage(message) {
       const now = Date.now();
@@ -133,8 +105,6 @@ export default {
       } else {
         console.error("imageViewer element not found");
       }
-<<<<<<< HEAD
-=======
     },
     setupKeyboardControls() {
       window.addEventListener('keydown', this.handleKeyDown);
@@ -176,7 +146,6 @@ export default {
       });
 
       this.cmdVel.publish(twist);
->>>>>>> origin/simulation
     }
   }
 };
@@ -208,10 +177,7 @@ header {
 
 #image-container {
   display: flex;
-<<<<<<< HEAD
-=======
   flex-direction: column; /* 将图像容器和键盘容器垂直排列 */
->>>>>>> origin/simulation
   justify-content: center; /* 将图像容器水平居中 */
   align-items: center; /* 将图像容器垂直居中 */
   background: white;
@@ -224,8 +190,6 @@ header {
   width: 800px; /* 固定宽度 */
   height: 600px; /* 固定高度 */
 }
-<<<<<<< HEAD
-=======
 
 #keyboard-teleop {
   margin-top: 20px; /* 调整键盘容器与图像容器之间的距离 */
@@ -281,5 +245,4 @@ header {
   margin: 20px 0; /* 调整按键文本的上下边距 */
   font-size: 28px; /* 调整按键文本的字体大小 */
 }
->>>>>>> origin/simulation
 </style>
