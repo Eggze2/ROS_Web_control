@@ -1,6 +1,20 @@
 <template>
   <div class="tf-viewer">
+<<<<<<< HEAD
     <h1>Simple TF Example</h1>
+=======
+    <h1>TF Viewer</h1>
+    <div class="dropdowns">
+      <label for="fixed-frame">Fixed Frame:</label>
+      <select id="fixed-frame" v-model="fixedFrame" @change="subscribeTf">
+        <option v-for="frame in frames" :key="frame" :value="frame">{{ frame }}</option>
+      </select>
+      <label for="target-frame">Target Frame:</label>
+      <select id="target-frame" v-model="targetFrame" @change="subscribeTf">
+        <option v-for="frame in frames" :key="frame" :value="frame">{{ frame }}</option>
+      </select>
+    </div>
+>>>>>>> origin/simulation
     <p>Check the output below for TF data:</p>
     <pre>{{ tfData }}</pre>
   </div>
@@ -11,14 +25,34 @@ export default {
   name: 'TfViewer',
   data() {
     return {
+<<<<<<< HEAD
       tfData: ''
+=======
+      tfData: '',
+      ros: null,
+      tfClient: null,
+      fixedFrame: 'odom',
+      targetFrame: 'camera',
+      frames: ['odom', 'camera', 'back_wheel', 'front_wheel', 'laser', 'left_wheel', 'right_wheel', 'support', 'support_depth']
+>>>>>>> origin/simulation
     };
   },
   mounted() {
     this.loadScripts().then(() => {
       this.init();
+<<<<<<< HEAD
     });
   },
+=======
+      this.subscribeTf();
+    });
+  },
+  beforeDestroy() {
+    if (this.tfClient) {
+      this.tfClient.unsubscribe(this.targetFrame);
+    }
+  },
+>>>>>>> origin/simulation
   methods: {
     loadScripts() {
       const scripts = [
@@ -39,6 +73,7 @@ export default {
       );
     },
     init() {
+<<<<<<< HEAD
       const ros = new window.ROSLIB.Ros({
         url: 'ws://localhost:9090'
       });
@@ -64,6 +99,39 @@ export default {
 
       ros.on('close', () => {
         console.log('Connection to websocket server closed.');
+=======
+      this.ros = new window.ROSLIB.Ros({
+        url: 'ws://localhost:9090'
+      });
+
+      this.ros.on('connection', () => {
+        console.log('Connected to websocket server.');
+      });
+
+      this.ros.on('error', (error) => {
+        console.log('Error connecting to websocket server: ', error);
+      });
+
+      this.ros.on('close', () => {
+        console.log('Connection to websocket server closed.');
+      });
+    },
+    subscribeTf() {
+      if (this.tfClient) {
+        this.tfClient.unsubscribe(this.targetFrame);
+      }
+
+      this.tfClient = new window.ROSLIB.TFClient({
+        ros: this.ros,
+        fixedFrame: this.fixedFrame,
+        angularThres: 0.01,
+        transThres: 0.01,
+        rate: 10.0
+      });
+
+      this.tfClient.subscribe(this.targetFrame, (tf) => {
+        this.tfData = JSON.stringify(tf, null, 2);
+>>>>>>> origin/simulation
       });
     }
   }
@@ -85,4 +153,24 @@ pre {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+<<<<<<< HEAD
+=======
+
+.dropdowns {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+label {
+  margin-right: 10px;
+}
+
+select {
+  margin-right: 20px;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+>>>>>>> origin/simulation
 </style>

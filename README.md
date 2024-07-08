@@ -13,6 +13,15 @@ rosrun web_video_server web_video_server _port:=9000
 roslaunch wpr_simulation wpb_demo_nav.launch(optional)
 roslaunch wpr_simulation wpb_stage_robocup.launch(optional)
 ```
+<<<<<<< HEAD
+=======
+With simulation car:
+```bash
+roslaunch urdf2gazebo carinroom.launch
+roslaunch navigation SLAM-Move_base.launch
+rosrun tf2_web_republisher tf2_web_republisher
+```
+>>>>>>> origin/simulation
 
 ## 2. 浏览器
 

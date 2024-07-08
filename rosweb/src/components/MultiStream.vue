@@ -40,7 +40,11 @@ export default {
         width: 640,
         height: 480,
         topics: [
+<<<<<<< HEAD
           '/wide_stereo/left/image_color',
+=======
+          '/camera/image_raw',
+>>>>>>> origin/simulation
           '/l_forearm_cam/image_color',
           '/r_forearm_cam/image_color'
         ],

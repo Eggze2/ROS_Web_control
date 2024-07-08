@@ -1,0 +1,9 @@
+<launch>
+    <!-- 启动SLAM节点 -->
+    <include file="$(find navigation)/launch/slam.launch" />
+    <!-- 运行move_base节点 -->
+    <include file="$(find navigation)/launch/path.launch" />
+    <!-- 运行rviz -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="static_transform_publisher" args="0 0 0 -1.57 0 -1.57 /support /support_depth" />
+
+</launch>
