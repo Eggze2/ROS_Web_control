@@ -3,17 +3,22 @@
 ## 1. 终端输入
 
 ```bash
-rosrun web_video_server web_video_server _port:=9000
 roslaunch rosbridge_server rosbridge_websocket.launch
-roslaunch wpr_simulation wpb_demo_nav.launch
-roslaunch wpr_simulation wpb_stage_robocup.launch
+rosrun web_video_server web_video_server _port:=9000
+
+roslaunch wpr_simulation wpb_demo_nav.launch(optional)
+roslaunch wpr_simulation wpb_stage_robocup.launch(optional)
 ```
 
 ## 2. 浏览器
 
-浏览器打开`index.html`
+在rosweb文件夹下打开终端输入：
 
-输入`ws://localhost:9090`
+```bash
+npm run serve
+```
+
+浏览器进入http://localhost:8080
 
 ## 3. 参考资料
 
