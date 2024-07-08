@@ -100,6 +100,7 @@ export default {
   justify-content: center;
   height: 100%;
   align-self: center;
+  z-index: 1000;
 }
 
 .sidebar ul {
