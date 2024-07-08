@@ -3,6 +3,10 @@
 ## 1. 终端输入
 
 ```bash
+catkin_make
+source ./devel/setup.sh 
+rosrun rosboard rosboard_node
+
 roslaunch rosbridge_server rosbridge_websocket.launch
 rosrun web_video_server web_video_server _port:=9000
 
@@ -12,9 +16,8 @@ roslaunch wpr_simulation wpb_stage_robocup.launch(optional)
 
 ## 2. 浏览器
 
-在rosweb文件夹下打开终端输入：
-
 ```bash
+cd rosweb
 npm run serve
 ```
 
