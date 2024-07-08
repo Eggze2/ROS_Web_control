@@ -1,0 +1,239 @@
+/* 全局基础样式 */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f0f0; /* 浅灰色背景 */
+}
+
+/* 布局容器 */
+.layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* 左侧和主内容区域的容器 */
+.content {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+/* 左侧栏目样式 */
+.sidebar.left {
+    width: 300px;
+    background: #3f51b5; /* 主色调 */
+    color: white; /* 白色字体 */
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar.left h2 {
+    margin-top: 0;
+    border-bottom: 1px solid #ffffff; /* 增加标题下的分割线 */
+}
+
+/* 主要内容区域 */
+.main {
+    flex-grow: 1;
+    background: url('map.png') no-repeat center center; /* 背景图片 */
+    background-size: cover; /* 图片覆盖整个区域 */
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 底部栏目样式 */
+.sidebar.bottom {
+    height: 200px;
+    background: #3f51b5; /* 主色调 */
+    color: white; /* 白色字体 */
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* 左对齐内容 */
+    position: relative; /* 确保底部栏始终在底部 */
+}
+
+/* 车辆状态样式 */
+.sidebar.bottom h2 {
+    border-bottom: 1px solid #ffffff; /* 增加标题下的分割线 */
+}
+
+.vehicle-status {
+    margin: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* 左对齐车辆状态 */
+}
+
+.vehicle-image {
+    width: 100px;
+    height: 100px;
+    margin-right: 20px;
+}
+
+/* 通用按钮样式 */
+button {
+    padding: 10px 20px;
+    margin: 5px 0;
+    cursor: pointer;
+    background-color: #303f9f; /* 深蓝色 */
+    color: white; /* 白色字体 */
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #1e2d73; /* 深色悬停效果 */
+}
+
+button:disabled {
+    background-color: #ccc; /* 灰色 */
+}
+
+/* 输入框样式 */
+input[type="text"], input[type="number"] {
+    padding: 8px;
+    margin-bottom: 10px;
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* 任务列表样式 */
+.task-list {
+    list-style: none;
+    padding: 0;
+}
+
+.task-list li {
+    margin-bottom: 10px;
+    background: #ffffff; /* 白色背景 */
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #000; /* 黑色字体 */
+}
+
+.task-list li .task-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.task-list li .task-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.task-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.task-status.complete {
+    color: green;
+}
+
+.task-status.incomplete {
+    color: red;
+}
+
+/* 添加任务表单样式 */
+.add-task-form {
+    background: #ffffff; /* 白色背景 */
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
+}
+
+/* 目标点输入框容器样式 */
+.target-input {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.target-input label {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.target-input input {
+    flex: 2;
+    margin-right: 5px;
+}
+
+/* 禁用状态下的目标点输入框样式 */
+.disabled {
+    background-color: #e0e0e0; /* 浅灰色背景 */
+    pointer-events: none;
+}
+
+/* 创建成功提示样式 */
+.alert {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px;
+    background-color: #3f51b5; /* 主色调 */
+    color: white; /* 白色字体 */
+    border-radius: 5px;
+    z-index: 1000;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); /* 轻微阴影 */
+}
+
+/* 动画效果 */
+@keyframes showAlert {
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+/* 确认对话框样式 */
+.confirmation-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff; /* 白色背景 */
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    z-index: 1001;
+    text-align: center;
+}
+
+/* 车辆选择弹窗样式 */
+.vehicle-selection-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff; /* 白色背景 */
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    z-index: 1001;
+    text-align: center;
+}
+
+.confirmation-dialog p {
+    margin: 0 0 20px;
+}
