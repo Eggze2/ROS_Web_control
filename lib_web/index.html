@@ -1,0 +1,298 @@
+<!-- <!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>lib_robot</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script type="text/javascript" src="roslib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+    <script type="text/javascript" src="ros3d.js"></script>
+    <style>
+        body {
+            background-color: #212529;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .jumbotron {
+            background-color: #343a40;
+            color: #fff;
+            border-radius: 10px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            border-radius: 10px;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            border: none;
+            border-radius: 10px;
+        }
+        .text-danger {
+            color: #dc3545 !important;
+        }
+        .text-success {
+            color: #28a745 !important;
+        }
+        .card {
+            background-color: #343a40;
+            color: #fff;
+            border-radius: 10px;
+            border: none;
+            margin-bottom: 20px;
+        }
+        #map {
+            width: 100%;
+            height: 500px;
+            margin-top: 20px;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #joyDiv {
+            border: 2px solid #9C9898;
+            border-radius: 10px;
+            margin: 50px auto;
+            width: 200px;
+            height: 200px;
+            background-color: rgba(128, 128, 128, 0.5);
+        }
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .control-buttons .btn {
+            width: 100px;
+            height: 100px;
+        }
+        .control-buttons .forward::before {
+            border-width: 0 50px 50px 50px;
+            border-color: transparent transparent #007bff transparent;
+        }
+        .control-buttons .backward::before {
+            border-width: 50px 50px 0 50px;
+            border-color: #007bff transparent transparent transparent;
+        }
+        .control-buttons .turnLeft::before {
+            border-width: 50px 50px 50px 0;
+            border-color: transparent #007bff transparent transparent;
+        }
+        .control-buttons .turnRight::before {
+            border-width: 50px 0 50px 50px;
+            border-color: transparent transparent transparent #007bff;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        .input-group label {
+            width: 120px;
+            display: inline-block;
+        }
+        .input-group input {
+            width: 100px;
+            border-radius: 10px;
+            background-color: rgba(128, 128, 128, 0.5);
+            border: 1px solid #9C9898;
+            color: #fff;
+        }
+    </style>
+    <script>
+        let ros;
+        let cmdVel;
+
+        function init() {
+            ros = new ROSLIB.Ros({
+                url: 'ws://localhost:9090'
+            });
+
+            // Create the main viewer.
+            var viewer = new ROS3D.Viewer({
+                divID: 'map',
+                width: 1500,
+                height: 500,
+                antialias: true
+            });
+
+            // Setup the marker client.
+            var gridClient = new ROS3D.OccupancyGridClient({
+                ros: ros,
+                rootObject: viewer.scene,
+                continuous: true
+            });
+
+            // Initialize cmdVel topic
+            cmdVel = new ROSLIB.Topic({
+                ros: ros,
+                name: '/cmd_vel',
+                messageType: 'geometry_msgs/Twist'
+            });
+        }
+
+        function publishCmdVel(linear, angular) {
+            var twist = new ROSLIB.Message({
+                linear: {
+                    x: linear,
+                    y: 0.0,
+                    z: 0.0
+                },
+                angular: {
+                    x: 0.0,
+                    y: 0.0,
+                    z: angular
+                }
+            });
+            cmdVel.publish(twist);
+        }
+
+        window.onload = function() {
+            init();
+
+            var joy = new JoyStick('joyDiv');
+
+            setInterval(function() {
+                var x = joy.GetX();
+                var y = joy.GetY();
+
+                // Adjust linear and angular values if necessary
+                var linear = y / 100.0; // scale as needed
+                var angular = -x / 100.0; // scale as needed, use negative to correct direction
+
+                publishCmdVel(linear, angular);
+
+                document.getElementById("posizioneX").value = joy.GetPosX();
+                document.getElementById("posizioneY").value = joy.GetPosY();
+                document.getElementById("direzione").value = joy.GetDir();
+                document.getElementById("X").value = joy.GetX();
+                document.getElementById("Y").value = joy.GetY();
+            }, 30); // Adjust the interval as needed
+        }
+    </script>
+</head>
+<body>
+    <div id="app" class="container">
+        <div class="jumbotron text-center">
+            <h1>ROS Web Control Panel</h1>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card p-3">
+                    <h3>Connection status</h3>
+                    <p class="text-danger" v-if="!connected">Not connected!</p>
+                    <p class="text-success" v-if="connected">Connected!</p>
+                    <label>Websocket server address</label>
+                    <input type="text" v-model="ws_address" class="form-control" />
+                    <br>
+                    <button :disabled="loading" class="btn btn-danger" @click="disconnect" v-if="connected">Disconnect!</button>
+                    <button :disabled="loading" class="btn btn-success" @click="connect" v-else>Connect!</button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card p-3" style="max-height: 200px; overflow:auto;">
+                    <h3>连接日志(logging_info)</h3>
+                    <div>
+                        <p v-for="log of logs">{{ log }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4 text-center">
+            <div class="col-md-12">
+                <h5>构建地图</h5>
+                <div class="control-buttons">
+                    <button @click="forward" :disabled="loading || !connected" class="btn btn-primary">▲</button>
+                    <button @click="turnLeft" :disabled="loading || !connected" class="btn btn-primary">◀</button>
+                    <button @click="stop" :disabled="loading || !connected" class="btn btn-danger">⏹</button>
+                    <button @click="turnRight" :disabled="loading || !connected" class="btn btn-primary">▶</button>
+                    <button @click="backward" :disabled="loading || !connected" class="btn btn-primary">▼</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <script type="text/javascript" src="main.js"></script>
+
+    <div id="joyDiv"></div>
+    <div class="container">
+        <div class="input-group">
+            <label>Posizione X:</label>
+            <input id="posizioneX" type="text" class="form-control d-inline-block" />
+        </div>
+        <div class="input-group">
+            <label>Posizione Y:</label>
+            <input id="posizioneY" type="text" class="form-control d-inline-block" />
+        </div>
+        <div class="input-group">
+            <label>Direzione:</label>
+            <input id="direzione" type="text" class="form-control d-inline-block" />
+        </div>
+        <div class="input-group">
+            <label>X:</label>
+            <input id="X" type="text" class="form-control d-inline-block" />
+        </div>
+        <div class="input-group">
+            <label>Y:</label>
+            <input id="Y" type="text" class="form-control d-inline-block" />
+        </div>
+    </div>
+
+    <script type="text/javascript" src="joy.js"></script>
+</body>
+</html>
+ -->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+
+<script type="text/javascript" src="easeljs.min.js"></script>
+<script type="text/javascript" src="eventemitter2.min.js"></script>
+<script type="text/javascript" src="roslib.min.js"></script>
+<script type="text/javascript" src="ros2d.min.js"></script>
+
+<script type="text/javascript" type="text/javascript">
+/**
+* Setup all visualization elements when the page is loaded.
+*/
+function init() {
+    // Connect to ROS.
+    var ros = new ROSLIB.Ros({
+    url : 'ws://localhost:9090'
+    });
+
+    // Create the main viewer.
+    var viewer = new ROS2D.Viewer({
+    divID : 'map',
+    width : 600,
+    height : 500
+    });
+
+    // Setup the map client.
+    var gridClient = new ROS2D.OccupancyGridClient({
+    ros : ros,
+    rootObject : viewer.scene
+    });
+    // Scale the canvas to fit to the map
+    gridClient.on('change', function(){
+    viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
+    });
+}
+</script>
+</head>
+
+<body onload="init()">
+<h1>Simple Map Example</h1>
+<div id="map"></div>
+</body>
+</html>

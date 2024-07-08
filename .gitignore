@@ -1,0 +1,94 @@
+# Compiled object files
+*.o
+*.lo
+*.ko
+
+# Precompiled headers
+*.gch
+*.pch
+
+# Object and static archive files (for libraries)
+*.a
+*.lib
+*.la
+*.lo
+
+# Shared object files (for libraries)
+*.so
+*.dylib
+*.dll
+
+# Executable files
+*.exe
+*.out
+*.app
+
+### Vue.js ###
+# node_modules
+node_modules
+/dist
+
+# .cache directory for webpack
+.cache/
+
+# local env file
+.env.local
+.env.*.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.ncb
+
+# Compiled output directory
+dist/
+
+### C++ ###
+/build/
+/bin/
+/devel/
+*.d
+*.cmake
+CMakeCache.txt
+Makefile
+install_manifest.txt
+
+### ROS ###
+*.bag
+/log/
+/build/
+/devel/
+
+### IntelliJ IDEA ###
+# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
+# .idea is included as it is never meant to be committed
+*.iml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries/
+.idea/vcs.xml
+.idea/jsLibraryMappings.js
+.idea/modules.xml
+*.iws
+
+# User-specific stuff
+.idea/user.iml
+.idea/*.ipr
+
+# AWS User-specific
+.idea/aws.xml
+
+### VSCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
