@@ -16,6 +16,11 @@ roslaunch urdf2gazebo carinroom.launch
 roslaunch navigation SLAM-Move_base.launch
 rosrun tf2_web_republisher tf2_web_republisher
 ```
+With wpr simulation
+```bash
+roslaunch wpr_simulation wpb_demo_nav.launch
+roslaunch wpr_simulation wpb_stage_robocup.launch
+```
 
 ## 2. 浏览器
 
@@ -27,7 +32,5 @@ npm run serve
 浏览器进入http://localhost:8080
 
 ## 3. 参考资料
-
-仓库
 
 `git clone https://github.com/EESC-LabRoM/rosweb.git`

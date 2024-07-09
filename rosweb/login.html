@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录界面</title>
+    <style>
+        /* 全局基础样式 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1f1c2c, #928dab);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 容器 */
+        .container {
+            display: flex;
+            flex-direction: row;
+            background: rgba(63, 81, 181, 0.9);
+            color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 800px;
+            max-width: 100%;
+            text-align: center;
+            position: relative;
+        }
+
+        /* 登录容器 */
+        .login-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border-radius: 10px;
+            background: linear-gradient(to right, rgba(63, 81, 181, 0.9), rgba(63, 81, 181, 0));
+        }
+
+        .login-container h1 {
+            margin-bottom: 20px;
+        }
+
+        .form-container {
+            width: 100%;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            background: #3f51b5;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-5px);
+            background: #303f9f;
+        }
+
+        p {
+            margin-top: 20px;
+        }
+
+        a {
+            color: #ffeb3b;
+            cursor: pointer;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* 信息容器 */
+        .info-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .info-container h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .info-container p {
+            font-size: 1.2em;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .info-container img {
+            width: 80%;
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-container">
+            <div class="form-container">
+                <h1>登录</h1>
+                <form @submit.prevent="login">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" v-model="username" required>
+                    
+                    <label for="password">密码</label>
+                    <input type="password" id="password" v-model="password" required>
+                    
+                    <button type="submit" class="submit-btn">登录</button>
+                    <button type="button" class="submit-btn" @click="loginAsGuest">直接进入</button>
+                </form>
+                <p>没有账号？<a href="register.html">注册</a></p>
+            </div>
+        </div>
+        <div class="info-container">
+            <h2>欢迎使用ROS Web Control</h2>
+            <p>最先进的机器人控制解决方案。请登录或注册以继续。</p>
+            <img src="logo.png" alt="Logo">
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+        new Vue({
+            el: '.container',
+            data: {
+                username: '',
+                password: '',
+                users: JSON.parse(localStorage.getItem('users')) || [
+                    { username: 'RAS', password: 'RAS123456' }
+                ]
+            },
+            methods: {
+                login() {
+                    const user = this.users.find(user => user.username === this.username && user.password === this.password);
+                    if (user) {
+                        window.location.href = 'ros_webcontrol.html';
+                    } else {
+                        alert('用户名或密码错误');
+                    }
+                },
+                loginAsGuest() {
+                    window.location.href = 'ros_webcontrol.html';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
