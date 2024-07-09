@@ -9,7 +9,7 @@
 // import { SCAN } from '/js/Scan.js';
 
 // eslint-disable-next-line no-unused-vars
-import createjs from "createjs-npm";
+// import createjs from "createjs-npm";
 
 
 
@@ -17,21 +17,18 @@ export default {
   name: 'Nav2D',
   mounted() {
     this.loadScripts().then(() => {
-      this.$nextTick(() => {
         this.init();
-      });
     });
   },
   methods: {
     loadScripts() {
       const scripts = [
-        '/js/eventemitter2.js',
+        
         // '/js/createjs.js',
         '/js/easeljs.js',
-
+        '/js/eventemitter2.js',
         '/js/roslib.js',
         '/js/ros2d.js',
-        '/js/ros3d.js',
         '/js/RosCanvas.js',
         '/js/goalPoint.js',
         '/js/pointCloud.js',
@@ -57,7 +54,7 @@ export default {
     },
     init() {
       const ros = new window.ROSLIB.Ros({
-          url: 'ws://localhost:9090'
+          url: 'ws://localhost:9090/'
         });
 
       const viewer = new window.ROS2D.Viewer({
@@ -74,8 +71,10 @@ export default {
           viewer : viewer,
           serverName : '/move_base'
         })
+
       new window.NAV.controller(ros,'/cmd_vel_mux/input/teleop', 'controller_show_div')
-      const showTopics = new window.SCAN.topicShowAll(ros,"show_all");
+      
+    //   const showTopics = new window.SCAN.topicShowAll(ros,"show_all");
           // pointCloud Scan
       const cloudScan = new window.SCAN.cloudScan({
           ros : ros,
@@ -88,24 +87,24 @@ export default {
         })
 
       ros.on('error', function(error) {
-          document.querySelector('#rosStatus').className = ("error_state");
-          document.querySelector('#rosStatus').innerText = "Error in the backend!";
+        //   document.querySelector('#rosStatus').className = ("error_state");
+        //   document.querySelector('#rosStatus').innerText = "Error in the backend!";
           console.log("[Rosbridge connect] ERROR:",error);
       });
     
       // Find out exactly when we made a connection.
       ros.on('connection', function() {
         console.log('Connection made!');
-        showTopics.update();
+        // showTopics.update();
         viewer.scene.addChild(cloudScan.poindCloud);
-        document.querySelector('#rosStatus').className = ("connected_state");
-        document.querySelector('#rosStatus').innerText = " Connected.";
+        // document.querySelector('#rosStatus').className = ("connected_state");
+        // document.querySelector('#rosStatus').innerText = " Connected.";
       });
     
       ros.on('close', function() {
         console.log('Connection closed.');
-        document.querySelector('#rosStatus').className = ("");
-        document.querySelector('#rosStatus').innerText = " Connection closed.";
+        // document.querySelector('#rosStatus').className = ("");
+        // document.querySelector('#rosStatus').innerText = " Connection closed.";
       });
     
     
