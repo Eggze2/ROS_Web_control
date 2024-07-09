@@ -1,5 +1,6 @@
 <template>
-  <div id="app">
+  <div class="marker-container">
+    <h1>Simple Marker Example</h1>
     <div id="markers"></div>
   </div>
 </template>
@@ -10,15 +11,17 @@ export default {
   mounted() {
     this.loadScripts().then(() => {
       this.init();
+    }).catch(error => {
+      console.error('Error loading scripts:', error);
     });
   },
   methods: {
     loadScripts() {
       const scripts = [
-        '/js/three.min.js',
-        '/js/eventemitter2.js',
-        '/js/roslib.js',
-        '/js/ros3d.js'
+        './js/three.min.js',
+        './js/eventemitter2.min.js',
+        './js/roslib.min.js',
+        './js/ros3d.min.js'
       ];
 
       return Promise.all(
@@ -27,61 +30,62 @@ export default {
             const scriptElement = document.createElement('script');
             scriptElement.src = script;
             scriptElement.onload = resolve;
-            scriptElement.onerror = reject;
+            scriptElement.onerror = () => reject(new Error(`Failed to load script: ${script}`));
             document.head.appendChild(scriptElement);
           });
         })
       );
     },
     init() {
-      const ros = new window.ROSLIB.Ros({
-        url: 'ws://localhost:9090'
-      });
+      try {
+        // Connect to ROS.
+        const ros = new window.ROSLIB.Ros({
+          url: 'ws://localhost:9090'
+        });
 
-      const viewer = new window.ROS3D.Viewer({
-        divID: 'markers',
-        width: 800,
-        height: 600,
-        antialias: true
-      });
+        // Create the main viewer.
+        const viewer = new window.ROS3D.Viewer({
+          divID: 'markers',
+          width: 800,
+          height: 600,
+          antialias: true
+        });
 
-      const tfClient = new window.ROSLIB.TFClient({
-        ros: ros,
-        angularThres: 0.01,
-        transThres: 0.01,
-        rate: 10.0,
-        fixedFrame: '/my_frame'
-      });
+        // Setup a client to listen to TFs.
+        const tfClient = new window.ROSLIB.TFClient({
+          ros: ros,
+          angularThres: 0.01,
+          transThres: 0.01,
+          rate: 10.0,
+          fixedFrame: '/my_frame'
+        });
 
-      new window.ROS3D.MarkerClient({
-        ros: ros,
-        tfClient: tfClient,
-        topic: '/visualization_marker',
-        rootObject: viewer.scene
-      });
+        // Setup the marker client.
+        new window.ROS3D.MarkerClient({
+          ros: ros,
+          tfClient: tfClient,
+          topic: '/visualization_marker',
+          rootObject: viewer.scene
+        });
+      } catch (error) {
+        console.error('Error initializing ROS3D Viewer:', error);
+      }
     }
   }
 };
 </script>
 
-<style>
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  background-color: #f5f7fa;
+<style scoped>
+.marker-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  flex-direction: column;
+  align-items: center; /* Center content horizontally */
+  justify-content: center; /* Center content vertically */
+  height: 100vh; /* Full viewport height */
 }
 
 #markers {
   width: 800px;
   height: 600px;
-  border: 1px solid #ddd;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
 }
 </style>
