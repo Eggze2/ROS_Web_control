@@ -62,6 +62,8 @@ export default {
 
       const viewer = new window.ROS2D.Viewer({
           divID: 'nav2d',
+          // width: 600,
+          // height: 800
           width: 2016,
           height: 3680
         });
