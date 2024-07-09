@@ -10,6 +10,7 @@
   "dependencies": {
     "@robot-web-tools/ros3djs": "^0.17.0-SNAPSHOT",
     "core-js": "^3.8.3",
+    "createjs-npm": "^0.2.0",
     "joystick": "^0.1.2",
     "roslib": "^1.4.1",
     "vue": "^2.6.14"
