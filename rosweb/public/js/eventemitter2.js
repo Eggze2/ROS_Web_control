@@ -99,7 +99,7 @@
     var obj = {};
     var key;
     var len = keys.length;
-    var valuesCount = values ? values.length : 0;
+    var valuesCount = values ? value.length : 0;
     for (var i = 0; i < len; i++) {
       key = keys[i];
       obj[key] = i < valuesCount ? values[i] : undefined;
@@ -397,7 +397,6 @@
       if (options.timeout > 0) {
         timer= setTimeout(function(){
           var reason= Error('timeout');
-          reason.code = 'ETIMEDOUT'
           timer= 0;
           promise.cancel(reason);
           reject(reason);
@@ -473,87 +472,83 @@
     var listeners= null, branch, xTree, xxTree, isolatedBranch, endReached, currentType = type[i],
         nextType = type[i + 1], branches, _listeners;
 
-    if (i === typeLength) {
+    if (i === typeLength && tree._listeners) {
       //
       // If at the end of the event(s) list and the tree has listeners
       // invoke those listeners.
       //
-
-      if(tree._listeners) {
-        if (typeof tree._listeners === 'function') {
-          handlers && handlers.push(tree._listeners);
-          listeners = [tree];
-        } else {
-          handlers && handlers.push.apply(handlers, tree._listeners);
-          listeners = [tree];
-        }
+      if (typeof tree._listeners === 'function') {
+        handlers && handlers.push(tree._listeners);
+        return [tree];
+      } else {
+        handlers && handlers.push.apply(handlers, tree._listeners);
+        return [tree];
       }
-    } else {
+    }
 
-      if (currentType === '*') {
-        //
-        // If the event emitted is '*' at this part
-        // or there is a concrete match at this patch
-        //
-        branches = ownKeys(tree);
-        n = branches.length;
-        while (n-- > 0) {
-          branch = branches[n];
-          if (branch !== '_listeners') {
-            _listeners = searchListenerTree(handlers, type, tree[branch], i + 1, typeLength);
-            if (_listeners) {
-              if (listeners) {
-                listeners.push.apply(listeners, _listeners);
-              } else {
-                listeners = _listeners;
-              }
+    if (currentType === '*') {
+      //
+      // If the event emitted is '*' at this part
+      // or there is a concrete match at this patch
+      //
+      branches= ownKeys(tree);
+      n= branches.length;
+      while(n-->0){
+        branch= branches[n];
+        if (branch !== '_listeners') {
+          _listeners = searchListenerTree(handlers, type, tree[branch], i + 1, typeLength);
+          if(_listeners){
+            if(listeners){
+              listeners.push.apply(listeners, _listeners);
+            }else{
+              listeners = _listeners;
             }
           }
         }
-        return listeners;
-      } else if (currentType === '**') {
-        endReached = (i + 1 === typeLength || (i + 2 === typeLength && nextType === '*'));
-        if (endReached && tree._listeners) {
-          // The next element has a _listeners, add it to the handlers.
-          listeners = searchListenerTree(handlers, type, tree, typeLength, typeLength);
-        }
+      }
+      return listeners;
+    } else if (currentType === '**') {
+      endReached = (i + 1 === typeLength || (i + 2 === typeLength && nextType === '*'));
+      if (endReached && tree._listeners) {
+        // The next element has a _listeners, add it to the handlers.
+        listeners = searchListenerTree(handlers, type, tree, typeLength, typeLength);
+      }
 
-        branches = ownKeys(tree);
-        n = branches.length;
-        while (n-- > 0) {
-          branch = branches[n];
-          if (branch !== '_listeners') {
-            if (branch === '*' || branch === '**') {
-              if (tree[branch]._listeners && !endReached) {
-                _listeners = searchListenerTree(handlers, type, tree[branch], typeLength, typeLength);
-                if (_listeners) {
-                  if (listeners) {
-                    listeners.push.apply(listeners, _listeners);
-                  } else {
-                    listeners = _listeners;
-                  }
+      branches= ownKeys(tree);
+      n= branches.length;
+      while(n-->0){
+        branch= branches[n];
+        if (branch !== '_listeners') {
+          if (branch === '*' || branch === '**') {
+            if (tree[branch]._listeners && !endReached) {
+              _listeners = searchListenerTree(handlers, type, tree[branch], typeLength, typeLength);
+              if(_listeners){
+                if(listeners){
+                  listeners.push.apply(listeners, _listeners);
+                }else{
+                  listeners = _listeners;
                 }
               }
-              _listeners = searchListenerTree(handlers, type, tree[branch], i, typeLength);
-            } else if (branch === nextType) {
-              _listeners = searchListenerTree(handlers, type, tree[branch], i + 2, typeLength);
-            } else {
-              // No match on this one, shift into the tree but not in the type array.
-              _listeners = searchListenerTree(handlers, type, tree[branch], i, typeLength);
             }
-            if (_listeners) {
-              if (listeners) {
-                listeners.push.apply(listeners, _listeners);
-              } else {
-                listeners = _listeners;
-              }
+            _listeners = searchListenerTree(handlers, type, tree[branch], i, typeLength);
+          } else if (branch === nextType) {
+            _listeners = searchListenerTree(handlers, type, tree[branch], i + 2, typeLength);
+          } else {
+            // No match on this one, shift into the tree but not in the type array.
+            _listeners = searchListenerTree(handlers, type, tree[branch], i, typeLength);
+          }
+          if(_listeners){
+            if(listeners){
+              listeners.push.apply(listeners, _listeners);
+            }else{
+              listeners = _listeners;
             }
           }
         }
-        return listeners;
-      } else if (tree[currentType]) {
-        listeners = searchListenerTree(handlers, type, tree[currentType], i + 1, typeLength);
       }
+      return listeners;
+    }else if (tree[currentType]) {
+      listeners= searchListenerTree(handlers, type, tree[currentType], i + 1, typeLength);
     }
 
       xTree = tree['*'];
@@ -603,7 +598,7 @@
     return listeners;
   }
 
-  function growListenerTree(type, listener, prepend) {
+  function growListenerTree(type, listener) {
     var len = 0, j = 0, i, delimiter = this.delimiter, dl= delimiter.length, ns;
 
     if(typeof type==='string') {
@@ -652,11 +647,7 @@
             tree._listeners = [tree._listeners];
           }
 
-          if (prepend) {
-            tree._listeners.unshift(listener);
-          } else {
-            tree._listeners.push(listener);
-          }
+          tree._listeners.push(listener);
 
           if (
               !tree._listeners.warned &&
@@ -1237,7 +1228,7 @@
     }
 
     if (this.wildcard) {
-      growListenerTree.call(this, type, listener, prepend);
+      growListenerTree.call(this, type, listener);
       return returnValue;
     }
 

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册界面</title>
+    <style>
+        /* 全局基础样式 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1f1c2c, #928dab);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 容器 */
+        .container {
+            display: flex;
+            flex-direction: row;
+            background: rgba(63, 81, 181, 0.9);
+            color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 800px;
+            max-width: 100%;
+            text-align: center;
+            position: relative;
+        }
+
+        /* 注册容器 */
+        .register-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border-radius: 10px;
+            background: linear-gradient(to right, rgba(63, 81, 181, 0.9), rgba(63, 81, 181, 0));
+        }
+
+        .register-container h1 {
+            margin-bottom: 20px;
+        }
+
+        .form-container {
+            width: 100%;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            background: #3f51b5;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-5px);
+            background: #303f9f;
+        }
+
+        p {
+            margin-top: 20px;
+        }
+
+        a {
+            color: #ffeb3b;
+            cursor: pointer;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* 信息容器 */
+        .info-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .info-container h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .info-container p {
+            font-size: 1.2em;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .info-container img {
+            width: 80%;
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="register-container">
+            <div class="form-container">
+                <h1>注册</h1>
+                <form @submit.prevent="register">
+                    <label for="reg-username">用户名</label>
+                    <input type="text" id="reg-username" v-model="regUsername" required>
+                    
+                    <label for="reg-password">密码</label>
+                    <input type="password" id="reg-password" v-model="regPassword" required>
+                    
+                    <button type="submit" class="submit-btn">注册</button>
+                </form>
+                <p>已有账号？<a href="login.html">登录</a></p>
+            </div>
+        </div>
+        <div class="info-container">
+            <h2>欢迎使用ROS Web Control</h2>
+            <p>最先进的机器人控制解决方案。请登录或注册以继续。</p>
+            <img src="logo.png" alt="Logo">
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+        new Vue({
+            el: '.container',
+            data: {
+                regUsername: '',
+                regPassword: '',
+                users: JSON.parse(localStorage.getItem('users')) || [
+                    { username: 'RAS', password: 'RAS123456' }
+                ]
+            },
+            methods: {
+                register() {
+                    if (this.users.find(user => user.username === this.regUsername)) {
+                        alert('用户名已存在');
+                        return;
+                    }
+                    if (!/[A-Za-z]/.test(this.regPassword) || !/[0-9]/.test(this.regPassword)) {
+                        alert('密码必须包含字母和数字');
+                        return;
+                    }
+                    this.users.push({ username: this.regUsername, password: this.regPassword });
+                    localStorage.setItem('users', JSON.stringify(this.users));
+                    alert('注册成功，请登录');
+                    window.location.href = 'login.html';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

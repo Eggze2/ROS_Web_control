@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务管理网站</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app" class="layout">
+        <div class="content">
+            <div class="sidebar left">
+                <h2>菜单</h2>
+                <ul>
+                    <li><button @click="taskManager.showVehicleSelection()" class="fade-in-button">选择车辆</button></li>
+                    <li><button @click="taskManager.toggleAddTaskForm()" class="fade-in-button">添加任务</button></li>
+                </ul>
+                <div v-if="taskManager.showAddTaskForm" class="add-task-form fade-in">
+                    <input type="text" v-model="taskManager.newTaskName" placeholder="任务名称">
+                    <div v-for="(target, index) in taskManager.newTaskTargets" :key="index" class="target-input" :class="{ 'disabled': index !== 0 && taskManager.newTaskTargets[index - 1].x == null }">
+                        <label>目标点 {{ index + 1 }}: (x, y)</label>
+                        <input type="number" v-model.number="target.x" placeholder="x" min="0">
+                        <input type="number" v-model.number="target.y" placeholder="y" min="0">
+                    </div>
+                    <button @click="taskManager.checkAndAddTask()">创建任务</button>
+                    <button @click="taskManager.toggleAddTaskForm()">取消</button>
+                </div>
+                <ul class="task-list">
+                    <li v-for="(task, index) in taskManager.currentTasks" :key="index" class="task-item slide-in" :style="{ animationDelay: (index * 0.2) + 's' }">
+                        <div class="task-details">
+                            <span>{{ task.name }}</span>
+                            <div class="task-status" :class="{ complete: task.completed, incomplete: !task.completed }">
+                                <span>{{ task.completed ? '完成' : '未完成' }}</span>
+                                <span>{{ task.completed ? '✔' : '✘' }}</span>
+                            </div>
+                        </div>
+                        <div class="task-actions">
+                            <button @click="taskManager.showDeleteConfirmation(index)">删除</button>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="main">
+                <div class="homepage">
+                    <h1 class="title">ROS Web Control</h1>
+                    <p class="description">欢迎来到ROS Web Control项目主页。我们致力于提供最先进的机器人控制解决方案。</p>
+                    <div class="features">
+                        <div class="feature">
+                            <div class="icon rotate"><img src="feature1.png" alt="功能1"></div>
+                            <h3>强大的控制能力</h3>
+                            <p>提供精确的机器人控制和导航功能。</p>
+                        </div>
+                        <div class="feature">
+                            <div class="icon pulse"><img src="feature2.png" alt="功能2"></div>
+                            <h3>实时监控</h3>
+                            <p>实时获取机器人状态和环境数据。</p>
+                        </div>
+                        <div class="feature">
+                            <div class="icon bounce"><img src="feature3.png" alt="功能3"></div>
+                            <h3>易于使用</h3>
+                            <p>友好的用户界面和易于操作的控制面板。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar bottom">
+            <div class="vehicle-container slide-in" v-for="(vehicle, index) in taskManager.vehicles" :key="vehicle.id" :style="{ animationDelay: (index * 0.2) + 's' }">
+                <h2>{{ vehicle.name }}</h2>
+                <img :src="'image' + vehicle.id + '.jpg'" alt="车辆图片" class="vehicle-image">
+                <button @click="taskManager.showVehicleDetails(vehicle)">展开</button>
+            </div>
+        </div>
+        <div v-if="taskManager.showVehicleSelectionDialog" class="vehicle-selection-dialog">
+            <h3>选择车辆</h3>
+            <ul>
+                <li v-for="vehicle in taskManager.vehicles" :key="vehicle.id">
+                    <button @click="taskManager.selectVehicle(vehicle.id)">{{ vehicle.name }}</button>
+                </li>
+            </ul>
+            <button @click="taskManager.hideVehicleSelection()">取消</button>
+        </div>
+        <div v-if="taskManager.showVehicleDetailsDialog" class="vehicle-details-dialog">
+            <h3>{{ taskManager.selectedVehicle.name }}</h3>
+            <p>车辆电量: {{ taskManager.selectedVehicle.battery }}%</p>
+            <p>当前位置: ({{ taskManager.selectedVehicle.position.x }}, {{ taskManager.selectedVehicle.position.y }})</p>
+            <p>速度: {{ taskManager.selectedVehicle.speed }} km/h</p>
+            <p>温度: {{ taskManager.selectedVehicle.temperature }} °C</p>
+            <p>载重: {{ taskManager.selectedVehicle.load }} kg</p>
+            <button @click="taskManager.redirectToVehiclePage(taskManager.selectedVehicle.id)">查看车辆详情</button>
+            <button @click="taskManager.showUpdateParamsForm()">修改参数</button>
+            <button @click="taskManager.showRenameVehicleForm()">重命名</button>
+            <button @click="taskManager.hideVehicleDetails()">关闭</button>
+        </div>
+        <div v-if="taskManager.showUpdateParamsFormDialog" class="update-params-form">
+            <h3>修改车辆参数</h3>
+            <label>速度 (km/h):</label>
+            <input type="number" v-model.number="taskManager.selectedVehicle.speed" min="0">
+            <label>温度 (°C):</label>
+            <input type="number" v-model.number="taskManager.selectedVehicle.temperature" min="-50" max="100">
+            <label>载重 (kg):</label>
+            <input type="number" v-model.number="taskManager.selectedVehicle.load" min="0" max="1000">
+            <button @click="taskManager.updateVehicleParams()">保存</button>
+            <button @click="taskManager.hideUpdateParamsForm()">取消</button>
+        </div>
+        <div v-if="taskManager.showRenameVehicleFormDialog" class="rename-vehicle-form">
+            <h3>重命名车辆</h3>
+            <input type="text" v-model="taskManager.newVehicleName" placeholder="新车辆名称">
+            <button @click="taskManager.renameVehicle()">保存</button>
+            <button @click="taskManager.hideRenameVehicleForm()">取消</button>
+        </div>
+        <div v-if="taskManager.alertMessage" class="alert">{{ taskManager.alertMessage }}</div>
+        <div v-if="taskManager.showConfirmationDialog" class="confirmation-dialog">
+            <p>{{ taskManager.confirmationMessage }}</p>
+            <button @click="taskManager.confirmAction()">确认</button>
+            <button @click="taskManager.cancelAction()">取消</button>
+        </div>
+    </div>
+    <!-- 引入Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+        class TaskManager {
+            constructor() {
+                this.tasks = {
+                    1: [],
+                    2: [],
+                    3: [],
+                    4: [],
+                    5: []
+                };
+                this.vehicles = [
+                    { id: 1, name: '车辆1', image: 'image1.jpg', map: 'map.jpg', battery: 100, position: { x: 0, y: 0 }, speed: 60, temperature: 25, load: 500 },
+                    { id: 2, name: '车辆2', image: 'image2.jpg', map: 'map.jpg', battery: 80, position: { x: 0, y: 0 }, speed: 45, temperature: 20, load: 300 },
+                    { id: 3, name: '车辆3', image: 'image3.jpg', map: 'map.jpg', battery: 90, position: { x: 0, y: 0 }, speed: 50, temperature: 22, load: 400 },
+                    { id: 4, name: '车辆4', image: 'image4.jpg', map: 'map.jpg', battery: 85, position: { x: 0, y: 0 }, speed: 55, temperature: 24, load: 450 },
+                    { id: 5, name: '车辆5', image: 'image5.jpg', map: 'map.jpg', battery: 95, position: { x: 0, y: 0 }, speed: 65, temperature: 26, load: 550 }
+                ];
+                this.selectedVehicle = {};
+                this.showAddTaskForm = false;
+                this.newTaskName = '';
+                this.newTaskTargets = [{ x: null, y: null }];
+                this.alertMessage = '';
+                this.showConfirmationDialog = false;
+                this.confirmationMessage = '';
+                this.pendingAction = null;
+                this.pendingActionIndex = null;
+                this.showVehicleSelectionDialog = false;
+                this.newVehicleName = '';
+                this.animate = false;
+                this.showVehicleDetailsDialog = false;
+                this.showUpdateParamsFormDialog = false;
+                this.showRenameVehicleFormDialog = false;
+
+                this.loadTasks();
+                this.loadVehicle();
+
+                setInterval(() => {
+                    this.checkTaskCompletion();
+                }, 5000);
+            }
+
+            get currentTasks() {
+                return this.tasks[this.selectedVehicle.id];
+            }
+
+            loadTasks() {
+                fetch('/tasks')
+                    .then(response => response.json())
+                    .then(data => {
+                        this.tasks = data;
+                        this.checkTaskCompletion();
+                    })
+                    .catch(error => {
+                        console.error('加载任务失败:', error);
+                    });
+            }
+
+            saveTasks() {
+                fetch('/tasks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(this.tasks)
+                }).then(response => {
+                    if (!response.ok) {
+                        throw new Error('任务保存失败');
+                    }
+                }).catch(error => {
+                    console.error('保存任务失败:', error);
+                });
+            }
+
+            loadVehicle() {
+                fetch('/vehicle')
+                    .then(response => response.json())
+                    .then(data => {
+                        this.vehicle = data;
+                        this.checkTaskCompletion();
+                    })
+                    .catch(error => {
+                        console.error('加载车辆信息失败:', error);
+                    });
+            }
+
+            saveVehicle() {
+                fetch('/vehicle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(this.vehicle)
+                }).then(response => {
+                    if (!response.ok) {
+                        throw new Error('车辆信息保存失败');
+                    }
+                }).catch(error => {
+                    console.error('保存车辆信息失败:', error);
+                });
+            }
+
+            get canCreateTask() {
+                return this.newTaskName.trim() !== '' && this.newTaskTargets.every((target, index) =>
+                    target.x !== null && target.y !== null && Number.isInteger(target.x) && Number.isInteger(target.y)
+                );
+            }
+
+            toggleAddTaskForm() {
+                this.showAddTaskForm = !this.showAddTaskForm;
+                if (!this.showAddTaskForm) {
+                    this.resetForm();
+                }
+            }
+
+            checkAndAddTask() {
+                if (!this.selectedVehicle.id) {
+                    this.showAlert('请先选择车辆');
+                    return;
+                }
+                if (this.newTaskName.trim() === '') {
+                    this.showAlert('未完成名字创建');
+                    return;
+                }
+                if (!this.canCreateTask) {
+                    this.showAlert('未输入x/y或输入的x/y不是整数');
+                    return;
+                }
+                this.pendingAction = this.addTask.bind(this);
+                this.confirmationMessage = '确认创建任务吗？';
+                this.showConfirmationDialog = true;
+            }
+
+            addTask() {
+                const newTask = {
+                    name: this.newTaskName,
+                    targets: this.newTaskTargets.map((target, index) => ({
+                        x: target.x,
+                        y: target.y
+                    }))
+                };
+                this.tasks[this.selectedVehicle.id].push(newTask);
+                this.resetForm();
+                this.showAlert('创建成功');
+                this.showAddTaskForm = false; // 确认后关闭添加任务表单
+                this.pendingAction = null;
+                this.showConfirmationDialog = false; // 确认后关闭弹窗
+                this.saveTasks();
+                this.checkTaskCompletion();
+            }
+
+            showDeleteConfirmation(index) {
+                this.pendingAction = this.deleteTask.bind(this);
+                this.pendingActionIndex = index;
+                this.confirmationMessage = '确认删除任务吗？';
+                this.showConfirmationDialog = true;
+            }
+
+            deleteTask(index) {
+                this.tasks[this.selectedVehicle.id].splice(index, 1);
+                this.showConfirmationDialog = false;
+                this.pendingAction = null;
+                this.saveTasks();
+                this.checkTaskCompletion();
+            }
+
+            showAlert(message) {
+                this.alertMessage = message;
+                setTimeout(() => this.alertMessage = '', 2000);
+            }
+
+            resetForm() {
+                this.newTaskName = '';
+                this.newTaskTargets = [{ x: null, y: null }];
+                this.showAddTaskForm = false;
+            }
+
+            confirmAction() {
+                if (this.pendingAction) {
+                    this.pendingAction(this.pendingActionIndex);
+                }
+                this.showConfirmationDialog = false;
+            }
+
+            cancelAction() {
+                this.showConfirmationDialog = false;
+                this.pendingAction = null;
+            }
+
+            isWithinRange(target, position) {
+                const dx = Math.abs(target.x - position.x);
+                const dy = Math.abs(target.y - position.y);
+                return dx <= 1 && dy <= 1;
+            }
+
+            checkTaskCompletion() {
+                const currentTasks = this.currentTasks;
+                if (currentTasks.length === 0) return;
+
+                const nextTask = currentTasks[0];
+                const isTaskComplete = nextTask.targets.every(target => 
+                    this.isWithinRange(target, this.vehicle.position)
+                );
+
+                if (isTaskComplete) {
+                    this.showAlert('已完成');
+                    this.deleteTask(0);
+                }
+            }
+
+            showVehicleSelection() {
+                this.showVehicleSelectionDialog = true;
+            }
+
+            hideVehicleSelection() {
+                this.showVehicleSelectionDialog = false;
+            }
+
+            selectVehicle(vehicleId) {
+                this.selectedVehicle = this.vehicles.find(v => v.id === vehicleId);
+                this.hideVehicleSelection();
+                this.checkTaskCompletion();
+                this.triggerAnimation();
+            }
+
+            showVehicleDetails(vehicle) {
+                this.selectedVehicle = vehicle;
+                this.showVehicleDetailsDialog = true;
+            }
+
+            hideVehicleDetails() {
+                this.showVehicleDetailsDialog = false;
+            }
+
+            showUpdateParamsForm() {
+                this.showUpdateParamsFormDialog = true;
+            }
+
+            hideUpdateParamsForm() {
+                this.showUpdateParamsFormDialog = false;
+            }
+
+            updateVehicleParams() {
+                this.saveVehicle();
+                this.hideUpdateParamsForm();
+                this.showAlert('参数更新成功');
+                this.triggerAnimation();
+            }
+
+            showRenameVehicleForm() {
+                this.showRenameVehicleFormDialog = true;
+            }
+
+            hideRenameVehicleForm() {
+                this.showRenameVehicleFormDialog = false;
+            }
+
+            renameVehicle() {
+                const vehicle = this.selectedVehicle;
+                if (vehicle && this.newVehicleName.trim() !== '') {
+                    vehicle.name = this.newVehicleName.trim();
+                    this.newVehicleName = '';
+                    this.hideRenameVehicleForm();
+                    this.triggerAnimation();
+                }
+            }
+
+            redirectToVehiclePage(vehicleId) {
+                window.open(`http://localhost:8080/vehicle/${vehicleId}`, '_blank');
+            }
+
+            triggerAnimation() {
+                this.animate = true;
+                setTimeout(() => {
+                    this.animate = false;
+                }, 1000);
+            }
+        }
+
+        new Vue({
+            el: '#app',
+            data: {
+                taskManager: new TaskManager()
+            }
+        });
+    </script>
+</body>
+</html>

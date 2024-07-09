@@ -31,6 +31,7 @@ import Nav2D from './components/Nav2D.vue';
 import LaserScan from './components/LaserScan.vue';
 import TfViewer from './components/TfViewer.vue';
 import MonitorPanel from './components/MonitorPanel.vue';
+import PointNavigation from './components/PointNavigation.vue';
 
 export default {
   name: 'App',
@@ -50,6 +51,7 @@ export default {
         { id: 11, name: 'Nav2D', component: 'Nav2D' },
         { id: 12, name: 'Laser Scan', component: 'LaserScan' },
         { id: 13, name: 'Tf Viewer', component: 'TfViewer' },
+        { id: 14, name: 'Point Navigation', component: 'PointNavigation'},
       ],
       selectedItem: { id: 1, component: 'ContinuousMap' },
     };
@@ -76,7 +78,8 @@ export default {
     Nav2D,
     LaserScan,
     TfViewer,
-    MonitorPanel
+    MonitorPanel,
+    PointNavigation
   }
 };
 </script>

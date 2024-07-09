@@ -1,23 +1,25 @@
 <template>
-  <div class="container">
-    <div id="joyDiv" class="joy-container">
-      <!-- Image reference is removed to avoid broken image icon -->
-    </div>
-    <div class="input-container">
-      <label for="posizioneX">Posizione X:</label>
-      <input id="posizioneX" type="text" />
-      <br>
-      <label for="posizioneY">Posizione Y:</label>
-      <input id="posizioneY" type="text" />
-      <br>
-      <label for="direzione">Direzione:</label>
-      <input id="direzione" type="text" />
-      <br>
-      <label for="X">X:</label>
-      <input id="X" type="text" />
-      <br>
-      <label for="Y">Y:</label>
-      <input id="Y" type="text" />
+  <div class="outer-container">
+    <div class="container">
+      <div id="joyDiv" class="joy-container">
+
+      </div>
+      <div class="input-container">
+        <label for="posizioneX">Posizione X:</label>
+        <input id="posizioneX" type="text" />
+        <br>
+        <label for="posizioneY">Posizione Y:</label>
+        <input id="posizioneY" type="text" />
+        <br>
+        <label for="direzione">Direzione:</label>
+        <input id="direzione" type="text" />
+        <br>
+        <label for="X">X:</label>
+        <input id="X" type="text" />
+        <br>
+        <label for="Y">Y:</label>
+        <input id="Y" type="text" />
+      </div>
     </div>
   </div>
 </template>
@@ -70,30 +72,52 @@ export default {
 </script>
 
 <style scoped>
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background-color: #1e1e1e; /* Dark background color */
+}
+
+.outer-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  width: 300px; /* Adjusted width to make background narrower */
   background-color: #1e1e1e;
+  border: 2px solid #2b2b2b;
+  padding: 20px;
+  border-radius: 10px;
 }
 
 .joy-container {
   width: 300px;
   height: 300px;
-  border: 2px solid #2b2b2b;
-  background-color: #1e1e1e;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 20px;
+}
+
+.joystick-image {
+  width: 100%;
+  height: auto;
 }
 
 .input-container {
   display: flex;
   flex-direction: column;
+  width: 100%;
   max-width: 200px;
-  margin: 20px 0;
   color: #ffffff;
   background-color: #2b2b2b;
   padding: 20px;

@@ -1,25 +1,29 @@
 <template>
-  <div class="container">
-    <p>Vector and Quaternion operations will be shown in the console.</p>
-    <div class="result-container">
-      <h3>Vector Operations Result:</h3>
-      <div v-for="(value, key) in vectorResult" :key="key" class="result-item">
-        <label>{{ key }}:</label>
-        <input type="text" v-model="vectorResult[key]" readonly />
-      </div>
-    </div>
-    <div class="result-container">
-      <h3>Quaternion Operations Result:</h3>
-      <div v-for="(value, key) in quaternionResult" :key="key" class="result-item">
-        <label>{{ key }}:</label>
-        <input type="text" v-model="quaternionResult[key]" readonly />
-      </div>
-    </div>
-    <div class="result-container">
-      <h3>Pose Result:</h3>
-      <div v-for="(value, key) in poseResult" :key="key" class="result-item">
-        <label>{{ key }}:</label>
-        <input type="text" v-model="poseResult[key]" readonly />
+  <div class="outer-container">
+    <div class="scroll-container">
+      <div class="container">
+        <p>Vector and Quaternion operations will be shown in the console.</p>
+        <div class="result-container">
+          <h3>Vector Operations Result:</h3>
+          <div v-for="(value, key) in vectorResult" :key="key" class="result-item">
+            <label>{{ key }}:</label>
+            <input type="text" v-model="vectorResult[key]" readonly />
+          </div>
+        </div>
+        <div class="result-container">
+          <h3>Quaternion Operations Result:</h3>
+          <div v-for="(value, key) in quaternionResult" :key="key" class="result-item">
+            <label>{{ key }}:</label>
+            <input type="text" v-model="quaternionResult[key]" readonly />
+          </div>
+        </div>
+        <div class="result-container">
+          <h3>Pose Result:</h3>
+          <div v-for="(value, key) in poseResult" :key="key" class="result-item">
+            <label>{{ key }}:</label>
+            <input type="text" v-model="poseResult[key]" readonly />
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -120,15 +124,45 @@ export default {
 </script>
 
 <style scoped>
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #1e1e1e;
+}
+
+.outer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.scroll-container {
+  width: calc(100% - 250px); /* Adjust width to exclude sidebar */
+  max-width: 600px; /* Maximum width to ensure it doesn't get too wide */
+  height: 100%;
+  overflow-y: auto;
+  border-radius: 15px; /* Rounded corners */
+  background-color: #1e1e1e;
+  margin: 0 auto; /* Center the container */
+}
+
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background-color: #1e1e1e;
+  justify-content: flex-start;
   color: #ffffff;
   text-align: center;
+  padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .result-container {

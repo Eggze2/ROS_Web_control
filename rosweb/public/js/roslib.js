@@ -407,7 +407,7 @@ else if (!global.CBOR)
 })(this);
 
 },{}],2:[function(require,module,exports){
-(function (process,setImmediate){(function (){
+(function (process){
 /*!
  * EventEmitter2
  * https://github.com/hij1nx/EventEmitter2
@@ -416,21 +416,11 @@ else if (!global.CBOR)
  * Licensed under the MIT license.
  */
 ;!function(undefined) {
-  var hasOwnProperty= Object.hasOwnProperty;
+
   var isArray = Array.isArray ? Array.isArray : function _isArray(obj) {
     return Object.prototype.toString.call(obj) === "[object Array]";
   };
   var defaultMaxListeners = 10;
-  var nextTickSupported= typeof process=='object' && typeof process.nextTick=='function';
-  var symbolsSupported= typeof Symbol==='function';
-  var reflectSupported= typeof Reflect === 'object';
-  var setImmediateSupported= typeof setImmediate === 'function';
-  var _setImmediate= setImmediateSupported ? setImmediate : setTimeout;
-  var ownKeys= symbolsSupported? (reflectSupported && typeof Reflect.ownKeys==='function'? Reflect.ownKeys : function(obj){
-    var arr= Object.getOwnPropertyNames(obj);
-    arr.push.apply(arr, Object.getOwnPropertySymbols(obj));
-    return arr;
-  }) : Object.keys;
 
   function init() {
     this._events = {};
@@ -444,20 +434,17 @@ else if (!global.CBOR)
       this._conf = conf;
 
       conf.delimiter && (this.delimiter = conf.delimiter);
-
-      if(conf.maxListeners!==undefined){
-          this._maxListeners= conf.maxListeners;
-      }
+      this._maxListeners = conf.maxListeners !== undefined ? conf.maxListeners : defaultMaxListeners;
 
       conf.wildcard && (this.wildcard = conf.wildcard);
-      conf.newListener && (this._newListener = conf.newListener);
-      conf.removeListener && (this._removeListener = conf.removeListener);
+      conf.newListener && (this.newListener = conf.newListener);
       conf.verboseMemoryLeak && (this.verboseMemoryLeak = conf.verboseMemoryLeak);
-      conf.ignoreErrors && (this.ignoreErrors = conf.ignoreErrors);
 
       if (this.wildcard) {
         this.listenerTree = {};
       }
+    } else {
+      this._maxListeners = defaultMaxListeners;
     }
   }
 
@@ -485,593 +472,165 @@ else if (!global.CBOR)
     }
   }
 
-  var toArray = function (a, b, c) {
-    var n = arguments.length;
-    switch (n) {
-      case 0:
-        return [];
-      case 1:
-        return [a];
-      case 2:
-        return [a, b];
-      case 3:
-        return [a, b, c];
-      default:
-        var arr = new Array(n);
-        while (n--) {
-          arr[n] = arguments[n];
-        }
-        return arr;
-    }
-  };
-
-  function toObject(keys, values) {
-    var obj = {};
-    var key;
-    var len = keys.length;
-    var valuesCount = values ? values.length : 0;
-    for (var i = 0; i < len; i++) {
-      key = keys[i];
-      obj[key] = i < valuesCount ? values[i] : undefined;
-    }
-    return obj;
+  function EventEmitter(conf) {
+    this._events = {};
+    this.newListener = false;
+    this.verboseMemoryLeak = false;
+    configure.call(this, conf);
   }
+  EventEmitter.EventEmitter2 = EventEmitter; // backwards compatibility for exporting EventEmitter property
 
-  function TargetObserver(emitter, target, options) {
-    this._emitter = emitter;
-    this._target = target;
-    this._listeners = {};
-    this._listenersCount = 0;
-
-    var on, off;
-
-    if (options.on || options.off) {
-      on = options.on;
-      off = options.off;
-    }
-
-    if (target.addEventListener) {
-      on = target.addEventListener;
-      off = target.removeEventListener;
-    } else if (target.addListener) {
-      on = target.addListener;
-      off = target.removeListener;
-    } else if (target.on) {
-      on = target.on;
-      off = target.off;
-    }
-
-    if (!on && !off) {
-      throw Error('target does not implement any known event API');
-    }
-
-    if (typeof on !== 'function') {
-      throw TypeError('on method must be a function');
-    }
-
-    if (typeof off !== 'function') {
-      throw TypeError('off method must be a function');
-    }
-
-    this._on = on;
-    this._off = off;
-
-    var _observers= emitter._observers;
-    if(_observers){
-      _observers.push(this);
-    }else{
-      emitter._observers= [this];
-    }
-  }
-
-  Object.assign(TargetObserver.prototype, {
-    subscribe: function(event, localEvent, reducer){
-      var observer= this;
-      var target= this._target;
-      var emitter= this._emitter;
-      var listeners= this._listeners;
-      var handler= function(){
-        var args= toArray.apply(null, arguments);
-        var eventObj= {
-          data: args,
-          name: localEvent,
-          original: event
-        };
-        if(reducer){
-          var result= reducer.call(target, eventObj);
-          if(result!==false){
-            emitter.emit.apply(emitter, [eventObj.name].concat(args))
-          }
-          return;
-        }
-        emitter.emit.apply(emitter, [localEvent].concat(args));
-      };
-
-
-      if(listeners[event]){
-        throw Error('Event \'' + event + '\' is already listening');
-      }
-
-      this._listenersCount++;
-
-      if(emitter._newListener && emitter._removeListener && !observer._onNewListener){
-
-        this._onNewListener = function (_event) {
-          if (_event === localEvent && listeners[event] === null) {
-            listeners[event] = handler;
-            observer._on.call(target, event, handler);
-          }
-        };
-
-        emitter.on('newListener', this._onNewListener);
-
-        this._onRemoveListener= function(_event){
-          if(_event === localEvent && !emitter.hasListeners(_event) && listeners[event]){
-            listeners[event]= null;
-            observer._off.call(target, event, handler);
-          }
-        };
-
-        listeners[event]= null;
-
-        emitter.on('removeListener', this._onRemoveListener);
-      }else{
-        listeners[event]= handler;
-        observer._on.call(target, event, handler);
-      }
-    },
-
-    unsubscribe: function(event){
-      var observer= this;
-      var listeners= this._listeners;
-      var emitter= this._emitter;
-      var handler;
-      var events;
-      var off= this._off;
-      var target= this._target;
-      var i;
-
-      if(event && typeof event!=='string'){
-        throw TypeError('event must be a string');
-      }
-
-      function clearRefs(){
-        if(observer._onNewListener){
-          emitter.off('newListener', observer._onNewListener);
-          emitter.off('removeListener', observer._onRemoveListener);
-          observer._onNewListener= null;
-          observer._onRemoveListener= null;
-        }
-        var index= findTargetIndex.call(emitter, observer);
-        emitter._observers.splice(index, 1);
-      }
-
-      if(event){
-        handler= listeners[event];
-        if(!handler) return;
-        off.call(target, event, handler);
-        delete listeners[event];
-        if(!--this._listenersCount){
-          clearRefs();
-        }
-      }else{
-        events= ownKeys(listeners);
-        i= events.length;
-        while(i-->0){
-          event= events[i];
-          off.call(target, event, listeners[event]);
-        }
-        this._listeners= {};
-        this._listenersCount= 0;
-        clearRefs();
-      }
-    }
-  });
-
-  function resolveOptions(options, schema, reducers, allowUnknown) {
-    var computedOptions = Object.assign({}, schema);
-
-    if (!options) return computedOptions;
-
-    if (typeof options !== 'object') {
-      throw TypeError('options must be an object')
-    }
-
-    var keys = Object.keys(options);
-    var length = keys.length;
-    var option, value;
-    var reducer;
-
-    function reject(reason) {
-      throw Error('Invalid "' + option + '" option value' + (reason ? '. Reason: ' + reason : ''))
-    }
-
-    for (var i = 0; i < length; i++) {
-      option = keys[i];
-      if (!allowUnknown && !hasOwnProperty.call(schema, option)) {
-        throw Error('Unknown "' + option + '" option');
-      }
-      value = options[option];
-      if (value !== undefined) {
-        reducer = reducers[option];
-        computedOptions[option] = reducer ? reducer(value, reject) : value;
-      }
-    }
-    return computedOptions;
-  }
-
-  function constructorReducer(value, reject) {
-    if (typeof value !== 'function' || !value.hasOwnProperty('prototype')) {
-      reject('value must be a constructor');
-    }
-    return value;
-  }
-
-  function makeTypeReducer(types) {
-    var message= 'value must be type of ' + types.join('|');
-    var len= types.length;
-    var firstType= types[0];
-    var secondType= types[1];
-
-    if (len === 1) {
-      return function (v, reject) {
-        if (typeof v === firstType) {
-          return v;
-        }
-        reject(message);
-      }
-    }
-
-    if (len === 2) {
-      return function (v, reject) {
-        var kind= typeof v;
-        if (kind === firstType || kind === secondType) return v;
-        reject(message);
-      }
-    }
-
-    return function (v, reject) {
-      var kind = typeof v;
-      var i = len;
-      while (i-- > 0) {
-        if (kind === types[i]) return v;
-      }
-      reject(message);
-    }
-  }
-
-  var functionReducer= makeTypeReducer(['function']);
-
-  var objectFunctionReducer= makeTypeReducer(['object', 'function']);
-
-  function makeCancelablePromise(Promise, executor, options) {
-    var isCancelable;
-    var callbacks;
-    var timer= 0;
-    var subscriptionClosed;
-
-    var promise = new Promise(function (resolve, reject, onCancel) {
-      options= resolveOptions(options, {
-        timeout: 0,
-        overload: false
-      }, {
-        timeout: function(value, reject){
-          value*= 1;
-          if (typeof value !== 'number' || value < 0 || !Number.isFinite(value)) {
-            reject('timeout must be a positive number');
-          }
-          return value;
-        }
-      });
-
-      isCancelable = !options.overload && typeof Promise.prototype.cancel === 'function' && typeof onCancel === 'function';
-
-      function cleanup() {
-        if (callbacks) {
-          callbacks = null;
-        }
-        if (timer) {
-          clearTimeout(timer);
-          timer = 0;
-        }
-      }
-
-      var _resolve= function(value){
-        cleanup();
-        resolve(value);
-      };
-
-      var _reject= function(err){
-        cleanup();
-        reject(err);
-      };
-
-      if (isCancelable) {
-        executor(_resolve, _reject, onCancel);
-      } else {
-        callbacks = [function(reason){
-          _reject(reason || Error('canceled'));
-        }];
-        executor(_resolve, _reject, function (cb) {
-          if (subscriptionClosed) {
-            throw Error('Unable to subscribe on cancel event asynchronously')
-          }
-          if (typeof cb !== 'function') {
-            throw TypeError('onCancel callback must be a function');
-          }
-          callbacks.push(cb);
-        });
-        subscriptionClosed= true;
-      }
-
-      if (options.timeout > 0) {
-        timer= setTimeout(function(){
-          var reason= Error('timeout');
-          reason.code = 'ETIMEDOUT'
-          timer= 0;
-          promise.cancel(reason);
-          reject(reason);
-        }, options.timeout);
-      }
-    });
-
-    if (!isCancelable) {
-      promise.cancel = function (reason) {
-        if (!callbacks) {
-          return;
-        }
-        var length = callbacks.length;
-        for (var i = 1; i < length; i++) {
-          callbacks[i](reason);
-        }
-        // internal callback to reject the promise
-        callbacks[0](reason);
-        callbacks = null;
-      };
-    }
-
-    return promise;
-  }
-
-  function findTargetIndex(observer) {
-    var observers = this._observers;
-    if(!observers){
-      return -1;
-    }
-    var len = observers.length;
-    for (var i = 0; i < len; i++) {
-      if (observers[i]._target === observer) return i;
-    }
-    return -1;
-  }
-
+  //
   // Attention, function return type now is array, always !
   // It has zero elements if no any matches found and one or more
   // elements (leafs) if there are matches
   //
-  function searchListenerTree(handlers, type, tree, i, typeLength) {
+  function searchListenerTree(handlers, type, tree, i) {
     if (!tree) {
-      return null;
+      return [];
     }
-
-    if (i === 0) {
-      var kind = typeof type;
-      if (kind === 'string') {
-        var ns, n, l = 0, j = 0, delimiter = this.delimiter, dl = delimiter.length;
-        if ((n = type.indexOf(delimiter)) !== -1) {
-          ns = new Array(5);
-          do {
-            ns[l++] = type.slice(j, n);
-            j = n + dl;
-          } while ((n = type.indexOf(delimiter, j)) !== -1);
-
-          ns[l++] = type.slice(j);
-          type = ns;
-          typeLength = l;
-        } else {
-          type = [type];
-          typeLength = 1;
-        }
-      } else if (kind === 'object') {
-        typeLength = type.length;
-      } else {
-        type = [type];
-        typeLength = 1;
-      }
-    }
-
-    var listeners= null, branch, xTree, xxTree, isolatedBranch, endReached, currentType = type[i],
-        nextType = type[i + 1], branches, _listeners;
-
-    if (i === typeLength) {
+    var listeners=[], leaf, len, branch, xTree, xxTree, isolatedBranch, endReached,
+        typeLength = type.length, currentType = type[i], nextType = type[i+1];
+    if (i === typeLength && tree._listeners) {
       //
       // If at the end of the event(s) list and the tree has listeners
       // invoke those listeners.
       //
-
-      if(tree._listeners) {
-        if (typeof tree._listeners === 'function') {
-          handlers && handlers.push(tree._listeners);
-          listeners = [tree];
-        } else {
-          handlers && handlers.push.apply(handlers, tree._listeners);
-          listeners = [tree];
+      if (typeof tree._listeners === 'function') {
+        handlers && handlers.push(tree._listeners);
+        return [tree];
+      } else {
+        for (leaf = 0, len = tree._listeners.length; leaf < len; leaf++) {
+          handlers && handlers.push(tree._listeners[leaf]);
         }
-      }
-    } else {
-
-      if (currentType === '*') {
-        //
-        // If the event emitted is '*' at this part
-        // or there is a concrete match at this patch
-        //
-        branches = ownKeys(tree);
-        n = branches.length;
-        while (n-- > 0) {
-          branch = branches[n];
-          if (branch !== '_listeners') {
-            _listeners = searchListenerTree(handlers, type, tree[branch], i + 1, typeLength);
-            if (_listeners) {
-              if (listeners) {
-                listeners.push.apply(listeners, _listeners);
-              } else {
-                listeners = _listeners;
-              }
-            }
-          }
-        }
-        return listeners;
-      } else if (currentType === '**') {
-        endReached = (i + 1 === typeLength || (i + 2 === typeLength && nextType === '*'));
-        if (endReached && tree._listeners) {
-          // The next element has a _listeners, add it to the handlers.
-          listeners = searchListenerTree(handlers, type, tree, typeLength, typeLength);
-        }
-
-        branches = ownKeys(tree);
-        n = branches.length;
-        while (n-- > 0) {
-          branch = branches[n];
-          if (branch !== '_listeners') {
-            if (branch === '*' || branch === '**') {
-              if (tree[branch]._listeners && !endReached) {
-                _listeners = searchListenerTree(handlers, type, tree[branch], typeLength, typeLength);
-                if (_listeners) {
-                  if (listeners) {
-                    listeners.push.apply(listeners, _listeners);
-                  } else {
-                    listeners = _listeners;
-                  }
-                }
-              }
-              _listeners = searchListenerTree(handlers, type, tree[branch], i, typeLength);
-            } else if (branch === nextType) {
-              _listeners = searchListenerTree(handlers, type, tree[branch], i + 2, typeLength);
-            } else {
-              // No match on this one, shift into the tree but not in the type array.
-              _listeners = searchListenerTree(handlers, type, tree[branch], i, typeLength);
-            }
-            if (_listeners) {
-              if (listeners) {
-                listeners.push.apply(listeners, _listeners);
-              } else {
-                listeners = _listeners;
-              }
-            }
-          }
-        }
-        return listeners;
-      } else if (tree[currentType]) {
-        listeners = searchListenerTree(handlers, type, tree[currentType], i + 1, typeLength);
+        return [tree];
       }
     }
 
-      xTree = tree['*'];
+    if ((currentType === '*' || currentType === '**') || tree[currentType]) {
+      //
+      // If the event emitted is '*' at this part
+      // or there is a concrete match at this patch
+      //
+      if (currentType === '*') {
+        for (branch in tree) {
+          if (branch !== '_listeners' && tree.hasOwnProperty(branch)) {
+            listeners = listeners.concat(searchListenerTree(handlers, type, tree[branch], i+1));
+          }
+        }
+        return listeners;
+      } else if(currentType === '**') {
+        endReached = (i+1 === typeLength || (i+2 === typeLength && nextType === '*'));
+        if(endReached && tree._listeners) {
+          // The next element has a _listeners, add it to the handlers.
+          listeners = listeners.concat(searchListenerTree(handlers, type, tree, typeLength));
+        }
+
+        for (branch in tree) {
+          if (branch !== '_listeners' && tree.hasOwnProperty(branch)) {
+            if(branch === '*' || branch === '**') {
+              if(tree[branch]._listeners && !endReached) {
+                listeners = listeners.concat(searchListenerTree(handlers, type, tree[branch], typeLength));
+              }
+              listeners = listeners.concat(searchListenerTree(handlers, type, tree[branch], i));
+            } else if(branch === nextType) {
+              listeners = listeners.concat(searchListenerTree(handlers, type, tree[branch], i+2));
+            } else {
+              // No match on this one, shift into the tree but not in the type array.
+              listeners = listeners.concat(searchListenerTree(handlers, type, tree[branch], i));
+            }
+          }
+        }
+        return listeners;
+      }
+
+      listeners = listeners.concat(searchListenerTree(handlers, type, tree[currentType], i+1));
+    }
+
+    xTree = tree['*'];
     if (xTree) {
       //
       // If the listener tree will allow any match for this part,
       // then recursively explore all branches of the tree
       //
-      searchListenerTree(handlers, type, xTree, i + 1, typeLength);
+      searchListenerTree(handlers, type, xTree, i+1);
     }
 
     xxTree = tree['**'];
-    if (xxTree) {
-      if (i < typeLength) {
-        if (xxTree._listeners) {
+    if(xxTree) {
+      if(i < typeLength) {
+        if(xxTree._listeners) {
           // If we have a listener on a '**', it will catch all, so add its handler.
-          searchListenerTree(handlers, type, xxTree, typeLength, typeLength);
+          searchListenerTree(handlers, type, xxTree, typeLength);
         }
 
         // Build arrays of matching next branches and others.
-        branches= ownKeys(xxTree);
-        n= branches.length;
-        while(n-->0){
-          branch= branches[n];
-          if (branch !== '_listeners') {
-            if (branch === nextType) {
+        for(branch in xxTree) {
+          if(branch !== '_listeners' && xxTree.hasOwnProperty(branch)) {
+            if(branch === nextType) {
               // We know the next element will match, so jump twice.
-              searchListenerTree(handlers, type, xxTree[branch], i + 2, typeLength);
-            } else if (branch === currentType) {
+              searchListenerTree(handlers, type, xxTree[branch], i+2);
+            } else if(branch === currentType) {
               // Current node matches, move into the tree.
-              searchListenerTree(handlers, type, xxTree[branch], i + 1, typeLength);
+              searchListenerTree(handlers, type, xxTree[branch], i+1);
             } else {
               isolatedBranch = {};
               isolatedBranch[branch] = xxTree[branch];
-              searchListenerTree(handlers, type, {'**': isolatedBranch}, i + 1, typeLength);
+              searchListenerTree(handlers, type, { '**': isolatedBranch }, i+1);
             }
           }
         }
-      } else if (xxTree._listeners) {
+      } else if(xxTree._listeners) {
         // We have reached the end and still on a '**'
-        searchListenerTree(handlers, type, xxTree, typeLength, typeLength);
-      } else if (xxTree['*'] && xxTree['*']._listeners) {
-        searchListenerTree(handlers, type, xxTree['*'], typeLength, typeLength);
+        searchListenerTree(handlers, type, xxTree, typeLength);
+      } else if(xxTree['*'] && xxTree['*']._listeners) {
+        searchListenerTree(handlers, type, xxTree['*'], typeLength);
       }
     }
 
     return listeners;
   }
 
-  function growListenerTree(type, listener, prepend) {
-    var len = 0, j = 0, i, delimiter = this.delimiter, dl= delimiter.length, ns;
+  function growListenerTree(type, listener) {
 
-    if(typeof type==='string') {
-      if ((i = type.indexOf(delimiter)) !== -1) {
-        ns = new Array(5);
-        do {
-          ns[len++] = type.slice(j, i);
-          j = i + dl;
-        } while ((i = type.indexOf(delimiter, j)) !== -1);
-
-        ns[len++] = type.slice(j);
-      }else{
-        ns= [type];
-        len= 1;
-      }
-    }else{
-      ns= type;
-      len= type.length;
-    }
+    type = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
 
     //
     // Looks for two consecutive '**', if so, don't add the event at all.
     //
-    if (len > 1) {
-      for (i = 0; i + 1 < len; i++) {
-        if (ns[i] === '**' && ns[i + 1] === '**') {
-          return;
-        }
+    for(var i = 0, len = type.length; i+1 < len; i++) {
+      if(type[i] === '**' && type[i+1] === '**') {
+        return;
       }
     }
 
+    var tree = this.listenerTree;
+    var name = type.shift();
 
+    while (name !== undefined) {
 
-    var tree = this.listenerTree, name;
+      if (!tree[name]) {
+        tree[name] = {};
+      }
 
-    for (i = 0; i < len; i++) {
-      name = ns[i];
+      tree = tree[name];
 
-      tree = tree[name] || (tree[name] = {});
+      if (type.length === 0) {
 
-      if (i === len - 1) {
         if (!tree._listeners) {
           tree._listeners = listener;
-        } else {
+        }
+        else {
           if (typeof tree._listeners === 'function') {
             tree._listeners = [tree._listeners];
           }
 
-          if (prepend) {
-            tree._listeners.unshift(listener);
-          } else {
-            tree._listeners.push(listener);
-          }
+          tree._listeners.push(listener);
 
           if (
-              !tree._listeners.warned &&
-              this._maxListeners > 0 &&
-              tree._listeners.length > this._maxListeners
+            !tree._listeners.warned &&
+            this._maxListeners > 0 &&
+            tree._listeners.length > this._maxListeners
           ) {
             tree._listeners.warned = true;
             logPossibleMemoryLeak.call(this, tree._listeners.length, name);
@@ -1079,210 +638,10 @@ else if (!global.CBOR)
         }
         return true;
       }
+      name = type.shift();
     }
-
     return true;
   }
-
-  function collectTreeEvents(tree, events, root, asArray){
-     var branches= ownKeys(tree);
-     var i= branches.length;
-     var branch, branchName, path;
-     var hasListeners= tree['_listeners'];
-     var isArrayPath;
-
-     while(i-->0){
-         branchName= branches[i];
-
-         branch= tree[branchName];
-
-         if(branchName==='_listeners'){
-             path= root;
-         }else {
-             path = root ? root.concat(branchName) : [branchName];
-         }
-
-         isArrayPath= asArray || typeof branchName==='symbol';
-
-         hasListeners && events.push(isArrayPath? path : path.join(this.delimiter));
-
-         if(typeof branch==='object'){
-             collectTreeEvents.call(this, branch, events, path, isArrayPath);
-         }
-     }
-
-     return events;
-  }
-
-  function recursivelyGarbageCollect(root) {
-    var keys = ownKeys(root);
-    var i= keys.length;
-    var obj, key, flag;
-    while(i-->0){
-      key = keys[i];
-      obj = root[key];
-
-      if(obj){
-          flag= true;
-          if(key !== '_listeners' && !recursivelyGarbageCollect(obj)){
-             delete root[key];
-          }
-      }
-    }
-
-    return flag;
-  }
-
-  function Listener(emitter, event, listener){
-    this.emitter= emitter;
-    this.event= event;
-    this.listener= listener;
-  }
-
-  Listener.prototype.off= function(){
-    this.emitter.off(this.event, this.listener);
-    return this;
-  };
-
-  function setupListener(event, listener, options){
-      if (options === true) {
-        promisify = true;
-      } else if (options === false) {
-        async = true;
-      } else {
-        if (!options || typeof options !== 'object') {
-          throw TypeError('options should be an object or true');
-        }
-        var async = options.async;
-        var promisify = options.promisify;
-        var nextTick = options.nextTick;
-        var objectify = options.objectify;
-      }
-
-      if (async || nextTick || promisify) {
-        var _listener = listener;
-        var _origin = listener._origin || listener;
-
-        if (nextTick && !nextTickSupported) {
-          throw Error('process.nextTick is not supported');
-        }
-
-        if (promisify === undefined) {
-          promisify = listener.constructor.name === 'AsyncFunction';
-        }
-
-        listener = function () {
-          var args = arguments;
-          var context = this;
-          var event = this.event;
-
-          return promisify ? (nextTick ? Promise.resolve() : new Promise(function (resolve) {
-            _setImmediate(resolve);
-          }).then(function () {
-            context.event = event;
-            return _listener.apply(context, args)
-          })) : (nextTick ? process.nextTick : _setImmediate)(function () {
-            context.event = event;
-            _listener.apply(context, args)
-          });
-        };
-
-        listener._async = true;
-        listener._origin = _origin;
-      }
-
-    return [listener, objectify? new Listener(this, event, listener): this];
-  }
-
-  function EventEmitter(conf) {
-    this._events = {};
-    this._newListener = false;
-    this._removeListener = false;
-    this.verboseMemoryLeak = false;
-    configure.call(this, conf);
-  }
-
-  EventEmitter.EventEmitter2 = EventEmitter; // backwards compatibility for exporting EventEmitter property
-
-  EventEmitter.prototype.listenTo= function(target, events, options){
-    if(typeof target!=='object'){
-      throw TypeError('target musts be an object');
-    }
-
-    var emitter= this;
-
-    options = resolveOptions(options, {
-      on: undefined,
-      off: undefined,
-      reducers: undefined
-    }, {
-      on: functionReducer,
-      off: functionReducer,
-      reducers: objectFunctionReducer
-    });
-
-    function listen(events){
-      if(typeof events!=='object'){
-        throw TypeError('events must be an object');
-      }
-
-      var reducers= options.reducers;
-      var index= findTargetIndex.call(emitter, target);
-      var observer;
-
-      if(index===-1){
-        observer= new TargetObserver(emitter, target, options);
-      }else{
-        observer= emitter._observers[index];
-      }
-
-      var keys= ownKeys(events);
-      var len= keys.length;
-      var event;
-      var isSingleReducer= typeof reducers==='function';
-
-      for(var i=0; i<len; i++){
-        event= keys[i];
-        observer.subscribe(
-            event,
-            events[event] || event,
-            isSingleReducer ? reducers : reducers && reducers[event]
-        );
-      }
-    }
-
-    isArray(events)?
-        listen(toObject(events)) :
-        (typeof events==='string'? listen(toObject(events.split(/\s+/))): listen(events));
-
-    return this;
-  };
-
-  EventEmitter.prototype.stopListeningTo = function (target, event) {
-    var observers = this._observers;
-
-    if(!observers){
-      return false;
-    }
-
-    var i = observers.length;
-    var observer;
-    var matched= false;
-
-    if(target && typeof target!=='object'){
-      throw TypeError('target should be an object');
-    }
-
-    while (i-- > 0) {
-      observer = observers[i];
-      if (!target || observer._target === target) {
-        observer.unsubscribe(event);
-        matched= true;
-      }
-    }
-
-    return matched;
-  };
 
   // By default EventEmitters will print a warning if more than
   // 10 listeners are added to it. This is a useful default which
@@ -1301,33 +660,31 @@ else if (!global.CBOR)
     }
   };
 
-  EventEmitter.prototype.getMaxListeners = function() {
-    return this._maxListeners;
-  };
-
   EventEmitter.prototype.event = '';
 
-  EventEmitter.prototype.once = function(event, fn, options) {
-    return this._once(event, fn, false, options);
+
+  EventEmitter.prototype.once = function(event, fn) {
+    return this._once(event, fn, false);
   };
 
-  EventEmitter.prototype.prependOnceListener = function(event, fn, options) {
-    return this._once(event, fn, true, options);
+  EventEmitter.prototype.prependOnceListener = function(event, fn) {
+    return this._once(event, fn, true);
   };
 
-  EventEmitter.prototype._once = function(event, fn, prepend, options) {
-    return this._many(event, 1, fn, prepend, options);
+  EventEmitter.prototype._once = function(event, fn, prepend) {
+    this._many(event, 1, fn, prepend);
+    return this;
   };
 
-  EventEmitter.prototype.many = function(event, ttl, fn, options) {
-    return this._many(event, ttl, fn, false, options);
-  };
+  EventEmitter.prototype.many = function(event, ttl, fn) {
+    return this._many(event, ttl, fn, false);
+  }
 
-  EventEmitter.prototype.prependMany = function(event, ttl, fn, options) {
-    return this._many(event, ttl, fn, true, options);
-  };
+  EventEmitter.prototype.prependMany = function(event, ttl, fn) {
+    return this._many(event, ttl, fn, true);
+  }
 
-  EventEmitter.prototype._many = function(event, ttl, fn, prepend, options) {
+  EventEmitter.prototype._many = function(event, ttl, fn, prepend) {
     var self = this;
 
     if (typeof fn !== 'function') {
@@ -1343,50 +700,33 @@ else if (!global.CBOR)
 
     listener._origin = fn;
 
-    return this._on(event, listener, prepend, options);
+    this._on(event, listener, prepend);
+
+    return self;
   };
 
   EventEmitter.prototype.emit = function() {
-    if (!this._events && !this._all) {
-      return false;
-    }
 
     this._events || init.call(this);
 
-    var type = arguments[0], ns, wildcard= this.wildcard;
-    var args,l,i,j, containsSymbol;
+    var type = arguments[0];
 
-    if (type === 'newListener' && !this._newListener) {
+    if (type === 'newListener' && !this.newListener) {
       if (!this._events.newListener) {
         return false;
       }
     }
 
-    if (wildcard) {
-      ns= type;
-      if(type!=='newListener' && type!=='removeListener'){
-        if (typeof type === 'object') {
-          l = type.length;
-          if (symbolsSupported) {
-            for (i = 0; i < l; i++) {
-              if (typeof type[i] === 'symbol') {
-                containsSymbol = true;
-                break;
-              }
-            }
-          }
-          if (!containsSymbol) {
-            type = type.join(this.delimiter);
-          }
-        }
-      }
-    }
-
     var al = arguments.length;
+    var args,l,i,j;
     var handler;
 
     if (this._all && this._all.length) {
       handler = this._all.slice();
+      if (al > 3) {
+        args = new Array(al);
+        for (j = 0; j < al; j++) args[j] = arguments[j];
+      }
 
       for (i = 0, l = handler.length; i < l; i++) {
         this.event = type;
@@ -1401,14 +741,15 @@ else if (!global.CBOR)
           handler[i].call(this, type, arguments[1], arguments[2]);
           break;
         default:
-          handler[i].apply(this, arguments);
+          handler[i].apply(this, args);
         }
       }
     }
 
-    if (wildcard) {
+    if (this.wildcard) {
       handler = [];
-      searchListenerTree.call(this, handler, ns, this.listenerTree, 0, l);
+      var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
+      searchListenerTree.call(this, handler, ns, this.listenerTree, 0);
     } else {
       handler = this._events[type];
       if (typeof handler === 'function') {
@@ -1458,57 +799,39 @@ else if (!global.CBOR)
         }
       }
       return true;
-    } else if (!this.ignoreErrors && !this._all && type === 'error') {
+    } else if (!this._all && type === 'error') {
       if (arguments[1] instanceof Error) {
         throw arguments[1]; // Unhandled 'error' event
       } else {
         throw new Error("Uncaught, unspecified 'error' event.");
       }
+      return false;
     }
 
     return !!this._all;
   };
 
   EventEmitter.prototype.emitAsync = function() {
-    if (!this._events && !this._all) {
-      return false;
-    }
 
     this._events || init.call(this);
 
-    var type = arguments[0], wildcard= this.wildcard, ns, containsSymbol;
-    var args,l,i,j;
+    var type = arguments[0];
 
-    if (type === 'newListener' && !this._newListener) {
+    if (type === 'newListener' && !this.newListener) {
         if (!this._events.newListener) { return Promise.resolve([false]); }
-    }
-
-    if (wildcard) {
-      ns= type;
-      if(type!=='newListener' && type!=='removeListener'){
-        if (typeof type === 'object') {
-          l = type.length;
-          if (symbolsSupported) {
-            for (i = 0; i < l; i++) {
-              if (typeof type[i] === 'symbol') {
-                containsSymbol = true;
-                break;
-              }
-            }
-          }
-          if (!containsSymbol) {
-            type = type.join(this.delimiter);
-          }
-        }
-      }
     }
 
     var promises= [];
 
     var al = arguments.length;
+    var args,l,i,j;
     var handler;
 
     if (this._all) {
+      if (al > 3) {
+        args = new Array(al);
+        for (j = 1; j < al; j++) args[j] = arguments[j];
+      }
       for (i = 0, l = this._all.length; i < l; i++) {
         this.event = type;
         switch (al) {
@@ -1522,13 +845,14 @@ else if (!global.CBOR)
           promises.push(this._all[i].call(this, type, arguments[1], arguments[2]));
           break;
         default:
-          promises.push(this._all[i].apply(this, arguments));
+          promises.push(this._all[i].apply(this, args));
         }
       }
     }
 
-    if (wildcard) {
+    if (this.wildcard) {
       handler = [];
+      var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
       searchListenerTree.call(this, handler, ns, this.listenerTree, 0);
     } else {
       handler = this._events[type];
@@ -1573,7 +897,7 @@ else if (!global.CBOR)
           promises.push(handler[i].apply(this, args));
         }
       }
-    } else if (!this.ignoreErrors && !this._all && type === 'error') {
+    } else if (!this._all && type === 'error') {
       if (arguments[1] instanceof Error) {
         return Promise.reject(arguments[1]); // Unhandled 'error' event
       } else {
@@ -1584,12 +908,12 @@ else if (!global.CBOR)
     return Promise.all(promises);
   };
 
-  EventEmitter.prototype.on = function(type, listener, options) {
-    return this._on(type, listener, false, options);
+  EventEmitter.prototype.on = function(type, listener) {
+    return this._on(type, listener, false);
   };
 
-  EventEmitter.prototype.prependListener = function(type, listener, options) {
-    return this._on(type, listener, true, options);
+  EventEmitter.prototype.prependListener = function(type, listener) {
+    return this._on(type, listener, true);
   };
 
   EventEmitter.prototype.onAny = function(fn) {
@@ -1619,9 +943,9 @@ else if (!global.CBOR)
     }
 
     return this;
-  };
+  }
 
-  EventEmitter.prototype._on = function(type, listener, prepend, options) {
+  EventEmitter.prototype._on = function(type, listener, prepend) {
     if (typeof type === 'function') {
       this._onAny(type, listener);
       return this;
@@ -1632,29 +956,20 @@ else if (!global.CBOR)
     }
     this._events || init.call(this);
 
-    var returnValue= this, temp;
-
-    if (options !== undefined) {
-      temp = setupListener.call(this, type, listener, options);
-      listener = temp[0];
-      returnValue = temp[1];
-    }
-
     // To avoid recursion in the case that type == "newListeners"! Before
     // adding it to the listeners, first emit "newListeners".
-    if (this._newListener) {
-      this.emit('newListener', type, listener);
-    }
+    this.emit('newListener', type, listener);
 
     if (this.wildcard) {
-      growListenerTree.call(this, type, listener, prepend);
-      return returnValue;
+      growListenerTree.call(this, type, listener);
+      return this;
     }
 
     if (!this._events[type]) {
       // Optimize the case of one listener. Don't need the extra array object.
       this._events[type] = listener;
-    } else {
+    }
+    else {
       if (typeof this._events[type] === 'function') {
         // Change to array.
         this._events[type] = [this._events[type]];
@@ -1678,8 +993,8 @@ else if (!global.CBOR)
       }
     }
 
-    return returnValue;
-  };
+    return this;
+  }
 
   EventEmitter.prototype.off = function(type, listener) {
     if (typeof listener !== 'function') {
@@ -1691,8 +1006,8 @@ else if (!global.CBOR)
     if(this.wildcard) {
       var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
       leafs = searchListenerTree.call(this, null, ns, this.listenerTree, 0);
-      if(!leafs) return this;
-    } else {
+    }
+    else {
       // does not use listeners(), so no side effect of creating _events[type]
       if (!this._events[type]) return this;
       handlers = this._events[type];
@@ -1734,8 +1049,8 @@ else if (!global.CBOR)
             delete this._events[type];
           }
         }
-        if (this._removeListener)
-          this.emit("removeListener", type, listener);
+
+        this.emit("removeListener", type, listener);
 
         return this;
       }
@@ -1748,12 +1063,30 @@ else if (!global.CBOR)
         else {
           delete this._events[type];
         }
-        if (this._removeListener)
-          this.emit("removeListener", type, listener);
+
+        this.emit("removeListener", type, listener);
       }
     }
 
-    this.listenerTree && recursivelyGarbageCollect(this.listenerTree);
+    function recursivelyGarbageCollect(root) {
+      if (root === undefined) {
+        return;
+      }
+      var keys = Object.keys(root);
+      for (var i in keys) {
+        var key = keys[i];
+        var obj = root[key];
+        if ((obj instanceof Function) || (typeof obj !== "object") || (obj === null))
+          continue;
+        if (Object.keys(obj).length > 0) {
+          recursivelyGarbageCollect(root[key]);
+        }
+        if (Object.keys(obj).length === 0) {
+          delete root[key];
+        }
+      }
+    }
+    recursivelyGarbageCollect(this.listenerTree);
 
     return this;
   };
@@ -1765,17 +1098,14 @@ else if (!global.CBOR)
       for(i = 0, l = fns.length; i < l; i++) {
         if(fn === fns[i]) {
           fns.splice(i, 1);
-          if (this._removeListener)
-            this.emit("removeListenerAny", fn);
+          this.emit("removeListenerAny", fn);
           return this;
         }
       }
     } else {
       fns = this._all;
-      if (this._removeListener) {
-        for(i = 0, l = fns.length; i < l; i++)
-          this.emit("removeListenerAny", fns[i]);
-      }
+      for(i = 0, l = fns.length; i < l; i++)
+        this.emit("removeListenerAny", fns[i]);
       this._all = [];
     }
     return this;
@@ -1783,97 +1113,50 @@ else if (!global.CBOR)
 
   EventEmitter.prototype.removeListener = EventEmitter.prototype.off;
 
-  EventEmitter.prototype.removeAllListeners = function (type) {
-    if (type === undefined) {
+  EventEmitter.prototype.removeAllListeners = function(type) {
+    if (arguments.length === 0) {
       !this._events || init.call(this);
       return this;
     }
 
     if (this.wildcard) {
-      var leafs = searchListenerTree.call(this, null, type, this.listenerTree, 0), leaf, i;
-      if (!leafs) return this;
-      for (i = 0; i < leafs.length; i++) {
-        leaf = leafs[i];
+      var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
+      var leafs = searchListenerTree.call(this, null, ns, this.listenerTree, 0);
+
+      for (var iLeaf=0; iLeaf<leafs.length; iLeaf++) {
+        var leaf = leafs[iLeaf];
         leaf._listeners = null;
       }
-      this.listenerTree && recursivelyGarbageCollect(this.listenerTree);
-    } else if (this._events) {
+    }
+    else if (this._events) {
       this._events[type] = null;
     }
     return this;
   };
 
-  EventEmitter.prototype.listeners = function (type) {
-    var _events = this._events;
-    var keys, listeners, allListeners;
-    var i;
-    var listenerTree;
-
-    if (type === undefined) {
-      if (this.wildcard) {
-        throw Error('event name required for wildcard emitter');
-      }
-
-      if (!_events) {
-        return [];
-      }
-
-      keys = ownKeys(_events);
-      i = keys.length;
-      allListeners = [];
-      while (i-- > 0) {
-        listeners = _events[keys[i]];
-        if (typeof listeners === 'function') {
-          allListeners.push(listeners);
-        } else {
-          allListeners.push.apply(allListeners, listeners);
-        }
-      }
-      return allListeners;
-    } else {
-      if (this.wildcard) {
-        listenerTree= this.listenerTree;
-        if(!listenerTree) return [];
-        var handlers = [];
-        var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
-        searchListenerTree.call(this, handlers, ns, listenerTree, 0);
-        return handlers;
-      }
-
-      if (!_events) {
-        return [];
-      }
-
-      listeners = _events[type];
-
-      if (!listeners) {
-        return [];
-      }
-      return typeof listeners === 'function' ? [listeners] : listeners;
-    }
-  };
-
-  EventEmitter.prototype.eventNames = function(nsAsArray){
-    var _events= this._events;
-    return this.wildcard? collectTreeEvents.call(this, this.listenerTree, [], null, nsAsArray) : (_events? ownKeys(_events) : []);
-  };
-
-  EventEmitter.prototype.listenerCount = function(type) {
-    return this.listeners(type).length;
-  };
-
-  EventEmitter.prototype.hasListeners = function (type) {
+  EventEmitter.prototype.listeners = function(type) {
     if (this.wildcard) {
       var handlers = [];
       var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
       searchListenerTree.call(this, handlers, ns, this.listenerTree, 0);
-      return handlers.length > 0;
+      return handlers;
     }
 
-    var _events = this._events;
-    var _all = this._all;
+    this._events || init.call(this);
 
-    return !!(_all && _all.length || _events && (type === undefined ? ownKeys(_events).length : _events[type]));
+    if (!this._events[type]) this._events[type] = [];
+    if (!isArray(this._events[type])) {
+      this._events[type] = [this._events[type]];
+    }
+    return this._events[type];
+  };
+
+  EventEmitter.prototype.eventNames = function(){
+    return Object.keys(this._events);
+  }
+
+  EventEmitter.prototype.listenerCount = function(type) {
+    return this.listeners(type).length;
   };
 
   EventEmitter.prototype.listenersAny = function() {
@@ -1887,141 +1170,6 @@ else if (!global.CBOR)
 
   };
 
-  EventEmitter.prototype.waitFor = function (event, options) {
-    var self = this;
-    var type = typeof options;
-    if (type === 'number') {
-      options = {timeout: options};
-    } else if (type === 'function') {
-      options = {filter: options};
-    }
-
-    options= resolveOptions(options, {
-      timeout: 0,
-      filter: undefined,
-      handleError: false,
-      Promise: Promise,
-      overload: false
-    }, {
-      filter: functionReducer,
-      Promise: constructorReducer
-    });
-
-    return makeCancelablePromise(options.Promise, function (resolve, reject, onCancel) {
-      function listener() {
-        var filter= options.filter;
-        if (filter && !filter.apply(self, arguments)) {
-          return;
-        }
-        self.off(event, listener);
-        if (options.handleError) {
-          var err = arguments[0];
-          err ? reject(err) : resolve(toArray.apply(null, arguments).slice(1));
-        } else {
-          resolve(toArray.apply(null, arguments));
-        }
-      }
-
-      onCancel(function(){
-        self.off(event, listener);
-      });
-
-      self._on(event, listener, false);
-    }, {
-      timeout: options.timeout,
-      overload: options.overload
-    })
-  };
-
-  function once(emitter, name, options) {
-    options= resolveOptions(options, {
-      Promise: Promise,
-      timeout: 0,
-      overload: false
-    }, {
-      Promise: constructorReducer
-    });
-
-    var _Promise= options.Promise;
-
-    return makeCancelablePromise(_Promise, function(resolve, reject, onCancel){
-      var handler;
-      if (typeof emitter.addEventListener === 'function') {
-        handler=  function () {
-          resolve(toArray.apply(null, arguments));
-        };
-
-        onCancel(function(){
-          emitter.removeEventListener(name, handler);
-        });
-
-        emitter.addEventListener(
-            name,
-            handler,
-            {once: true}
-        );
-        return;
-      }
-
-      var eventListener = function(){
-        errorListener && emitter.removeListener('error', errorListener);
-        resolve(toArray.apply(null, arguments));
-      };
-
-      var errorListener;
-
-      if (name !== 'error') {
-        errorListener = function (err){
-          emitter.removeListener(name, eventListener);
-          reject(err);
-        };
-
-        emitter.once('error', errorListener);
-      }
-
-      onCancel(function(){
-        errorListener && emitter.removeListener('error', errorListener);
-        emitter.removeListener(name, eventListener);
-      });
-
-      emitter.once(name, eventListener);
-    }, {
-      timeout: options.timeout,
-      overload: options.overload
-    });
-  }
-
-  var prototype= EventEmitter.prototype;
-
-  Object.defineProperties(EventEmitter, {
-    defaultMaxListeners: {
-      get: function () {
-        return prototype._maxListeners;
-      },
-      set: function (n) {
-        if (typeof n !== 'number' || n < 0 || Number.isNaN(n)) {
-          throw TypeError('n must be a non-negative number')
-        }
-        prototype._maxListeners = n;
-      },
-      enumerable: true
-    },
-    once: {
-      value: once,
-      writable: true,
-      configurable: true
-    }
-  });
-
-  Object.defineProperties(prototype, {
-      _maxListeners: {
-          value: defaultMaxListeners,
-          writable: true,
-          configurable: true
-      },
-      _observers: {value: null, writable: true, configurable: true}
-  });
-
   if (typeof define === 'function' && define.amd) {
      // AMD. Register as an anonymous module.
     define(function() {
@@ -2032,14 +1180,13 @@ else if (!global.CBOR)
     module.exports = EventEmitter;
   }
   else {
-    // global for any kind of environment.
-    var _global= new Function('','return this')();
-    _global.EventEmitter2 = EventEmitter;
+    // Browser global.
+    window.EventEmitter2 = EventEmitter;
   }
 }();
 
-}).call(this)}).call(this,require('_process'),require("timers").setImmediate)
-},{"_process":4,"timers":5}],3:[function(require,module,exports){
+}).call(this,require('_process'))
+},{"_process":4}],3:[function(require,module,exports){
 /*
 object-assign
 (c) Sindre Sorhus
@@ -2318,289 +1465,6 @@ process.chdir = function (dir) {
 process.umask = function() { return 0; };
 
 },{}],5:[function(require,module,exports){
-(function (setImmediate,clearImmediate){(function (){
-var nextTick = require('process/browser.js').nextTick;
-var apply = Function.prototype.apply;
-var slice = Array.prototype.slice;
-var immediateIds = {};
-var nextImmediateId = 0;
-
-// DOM APIs, for completeness
-
-exports.setTimeout = function() {
-  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
-};
-exports.setInterval = function() {
-  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
-};
-exports.clearTimeout =
-exports.clearInterval = function(timeout) { timeout.close(); };
-
-function Timeout(id, clearFn) {
-  this._id = id;
-  this._clearFn = clearFn;
-}
-Timeout.prototype.unref = Timeout.prototype.ref = function() {};
-Timeout.prototype.close = function() {
-  this._clearFn.call(window, this._id);
-};
-
-// Does not start the time, just sets up the members needed.
-exports.enroll = function(item, msecs) {
-  clearTimeout(item._idleTimeoutId);
-  item._idleTimeout = msecs;
-};
-
-exports.unenroll = function(item) {
-  clearTimeout(item._idleTimeoutId);
-  item._idleTimeout = -1;
-};
-
-exports._unrefActive = exports.active = function(item) {
-  clearTimeout(item._idleTimeoutId);
-
-  var msecs = item._idleTimeout;
-  if (msecs >= 0) {
-    item._idleTimeoutId = setTimeout(function onTimeout() {
-      if (item._onTimeout)
-        item._onTimeout();
-    }, msecs);
-  }
-};
-
-// That's not how node.js implements it but the exposed api is the same.
-exports.setImmediate = typeof setImmediate === "function" ? setImmediate : function(fn) {
-  var id = nextImmediateId++;
-  var args = arguments.length < 2 ? false : slice.call(arguments, 1);
-
-  immediateIds[id] = true;
-
-  nextTick(function onNextTick() {
-    if (immediateIds[id]) {
-      // fn.call() is faster so we optimize for the common use-case
-      // @see http://jsperf.com/call-apply-segu
-      if (args) {
-        fn.apply(null, args);
-      } else {
-        fn.call(null);
-      }
-      // Prevent ids from leaking
-      exports.clearImmediate(id);
-    }
-  });
-
-  return id;
-};
-
-exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
-  delete immediateIds[id];
-};
-}).call(this)}).call(this,require("timers").setImmediate,require("timers").clearImmediate)
-},{"process/browser.js":4,"timers":5}],6:[function(require,module,exports){
-function webpackBootstrapFunc (modules) {
-/******/  // The module cache
-/******/  var installedModules = {};
-
-/******/  // The require function
-/******/  function __webpack_require__(moduleId) {
-
-/******/    // Check if module is in cache
-/******/    if(installedModules[moduleId])
-/******/      return installedModules[moduleId].exports;
-
-/******/    // Create a new module (and put it into the cache)
-/******/    var module = installedModules[moduleId] = {
-/******/      i: moduleId,
-/******/      l: false,
-/******/      exports: {}
-/******/    };
-
-/******/    // Execute the module function
-/******/    modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
-
-/******/    // Flag the module as loaded
-/******/    module.l = true;
-
-/******/    // Return the exports of the module
-/******/    return module.exports;
-/******/  }
-
-/******/  // expose the modules object (__webpack_modules__)
-/******/  __webpack_require__.m = modules;
-
-/******/  // expose the module cache
-/******/  __webpack_require__.c = installedModules;
-
-/******/  // identity function for calling harmony imports with the correct context
-/******/  __webpack_require__.i = function(value) { return value; };
-
-/******/  // define getter function for harmony exports
-/******/  __webpack_require__.d = function(exports, name, getter) {
-/******/    if(!__webpack_require__.o(exports, name)) {
-/******/      Object.defineProperty(exports, name, {
-/******/        configurable: false,
-/******/        enumerable: true,
-/******/        get: getter
-/******/      });
-/******/    }
-/******/  };
-
-/******/  // define __esModule on exports
-/******/  __webpack_require__.r = function(exports) {
-/******/    Object.defineProperty(exports, '__esModule', { value: true });
-/******/  };
-
-/******/  // getDefaultExport function for compatibility with non-harmony modules
-/******/  __webpack_require__.n = function(module) {
-/******/    var getter = module && module.__esModule ?
-/******/      function getDefault() { return module['default']; } :
-/******/      function getModuleExports() { return module; };
-/******/    __webpack_require__.d(getter, 'a', getter);
-/******/    return getter;
-/******/  };
-
-/******/  // Object.prototype.hasOwnProperty.call
-/******/  __webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
-
-/******/  // __webpack_public_path__
-/******/  __webpack_require__.p = "/";
-
-/******/  // on error function for async loading
-/******/  __webpack_require__.oe = function(err) { console.error(err); throw err; };
-
-  var f = __webpack_require__(__webpack_require__.s = ENTRY_MODULE)
-  return f.default || f // try to call default if defined to also support babel esmodule exports
-}
-
-var moduleNameReqExp = '[\\.|\\-|\\+|\\w|\/|@]+'
-var dependencyRegExp = '\\(\\s*(\/\\*.*?\\*\/)?\\s*.*?(' + moduleNameReqExp + ').*?\\)' // additional chars when output.pathinfo is true
-
-// http://stackoverflow.com/a/2593661/130442
-function quoteRegExp (str) {
-  return (str + '').replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&')
-}
-
-function isNumeric(n) {
-  return !isNaN(1 * n); // 1 * n converts integers, integers as string ("123"), 1e3 and "1e3" to integers and strings to NaN
-}
-
-function getModuleDependencies (sources, module, queueName) {
-  var retval = {}
-  retval[queueName] = []
-
-  var fnString = module.toString()
-  var wrapperSignature = fnString.match(/^function\s?\w*\(\w+,\s*\w+,\s*(\w+)\)/)
-  if (!wrapperSignature) return retval
-  var webpackRequireName = wrapperSignature[1]
-
-  // main bundle deps
-  var re = new RegExp('(\\\\n|\\W)' + quoteRegExp(webpackRequireName) + dependencyRegExp, 'g')
-  var match
-  while ((match = re.exec(fnString))) {
-    if (match[3] === 'dll-reference') continue
-    retval[queueName].push(match[3])
-  }
-
-  // dll deps
-  re = new RegExp('\\(' + quoteRegExp(webpackRequireName) + '\\("(dll-reference\\s(' + moduleNameReqExp + '))"\\)\\)' + dependencyRegExp, 'g')
-  while ((match = re.exec(fnString))) {
-    if (!sources[match[2]]) {
-      retval[queueName].push(match[1])
-      sources[match[2]] = __webpack_require__(match[1]).m
-    }
-    retval[match[2]] = retval[match[2]] || []
-    retval[match[2]].push(match[4])
-  }
-
-  // convert 1e3 back to 1000 - this can be important after uglify-js converted 1000 to 1e3
-  var keys = Object.keys(retval);
-  for (var i = 0; i < keys.length; i++) {
-    for (var j = 0; j < retval[keys[i]].length; j++) {
-      if (isNumeric(retval[keys[i]][j])) {
-        retval[keys[i]][j] = 1 * retval[keys[i]][j];
-      }
-    }
-  }
-
-  return retval
-}
-
-function hasValuesInQueues (queues) {
-  var keys = Object.keys(queues)
-  return keys.reduce(function (hasValues, key) {
-    return hasValues || queues[key].length > 0
-  }, false)
-}
-
-function getRequiredModules (sources, moduleId) {
-  var modulesQueue = {
-    main: [moduleId]
-  }
-  var requiredModules = {
-    main: []
-  }
-  var seenModules = {
-    main: {}
-  }
-
-  while (hasValuesInQueues(modulesQueue)) {
-    var queues = Object.keys(modulesQueue)
-    for (var i = 0; i < queues.length; i++) {
-      var queueName = queues[i]
-      var queue = modulesQueue[queueName]
-      var moduleToCheck = queue.pop()
-      seenModules[queueName] = seenModules[queueName] || {}
-      if (seenModules[queueName][moduleToCheck] || !sources[queueName][moduleToCheck]) continue
-      seenModules[queueName][moduleToCheck] = true
-      requiredModules[queueName] = requiredModules[queueName] || []
-      requiredModules[queueName].push(moduleToCheck)
-      var newModules = getModuleDependencies(sources, sources[queueName][moduleToCheck], queueName)
-      var newModulesKeys = Object.keys(newModules)
-      for (var j = 0; j < newModulesKeys.length; j++) {
-        modulesQueue[newModulesKeys[j]] = modulesQueue[newModulesKeys[j]] || []
-        modulesQueue[newModulesKeys[j]] = modulesQueue[newModulesKeys[j]].concat(newModules[newModulesKeys[j]])
-      }
-    }
-  }
-
-  return requiredModules
-}
-
-module.exports = function (moduleId, options) {
-  options = options || {}
-  var sources = {
-    main: __webpack_modules__
-  }
-
-  var requiredModules = options.all ? { main: Object.keys(sources.main) } : getRequiredModules(sources, moduleId)
-
-  var src = ''
-
-  Object.keys(requiredModules).filter(function (m) { return m !== 'main' }).forEach(function (module) {
-    var entryModule = 0
-    while (requiredModules[module][entryModule]) {
-      entryModule++
-    }
-    requiredModules[module].push(entryModule)
-    sources[module][entryModule] = '(function(module, exports, __webpack_require__) { module.exports = __webpack_require__; })'
-    src = src + 'var ' + module + ' = (' + webpackBootstrapFunc.toString().replace('ENTRY_MODULE', JSON.stringify(entryModule)) + ')({' + requiredModules[module].map(function (id) { return '' + JSON.stringify(id) + ': ' + sources[module][id].toString() }).join(',') + '});\n'
-  })
-
-  src = src + 'new ((' + webpackBootstrapFunc.toString().replace('ENTRY_MODULE', JSON.stringify(moduleId)) + ')({' + requiredModules.main.map(function (id) { return '' + JSON.stringify(id) + ': ' + sources.main[id].toString() }).join(',') + '}))(self);'
-
-  var blob = new window.Blob([src], { type: 'text/javascript' })
-  if (options.bare) { return blob }
-
-  var URL = window.URL || window.webkitURL || window.mozURL || window.msURL
-
-  var workerUrl = URL.createObjectURL(blob)
-  var worker = new window.Worker(workerUrl)
-  worker.objectURL = workerUrl
-
-  return worker
-}
-
-},{}],7:[function(require,module,exports){
 var bundleFn = arguments[3];
 var sources = arguments[4];
 var cache = arguments[5];
@@ -2682,7 +1546,7 @@ module.exports = function (fn, options) {
     return worker;
 };
 
-},{}],8:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /**
  * @fileOverview
  * @author Russell Toris - rctoris@wpi.edu
@@ -2691,14 +1555,10 @@ module.exports = function (fn, options) {
 /**
  * If you use roslib in a browser, all the classes will be exported to a global variable called ROSLIB.
  *
- * If you use nodejs, this is the variable you get when you require('roslib').
+ * If you use nodejs, this is the variable you get when you require('roslib')
  */
 var ROSLIB = this.ROSLIB || {
-  /**
-   * @default
-   * @description Library version
-   */
-  REVISION : '1.4.1'
+  REVISION : '1.1.0'
 };
 
 var assign = require('object-assign');
@@ -2716,11 +1576,11 @@ assign(ROSLIB, require('./urdf'));
 
 module.exports = ROSLIB;
 
-},{"./actionlib":14,"./core":23,"./math":28,"./tf":31,"./urdf":43,"object-assign":3}],9:[function(require,module,exports){
-(function (global){(function (){
+},{"./actionlib":12,"./core":21,"./math":26,"./tf":29,"./urdf":41,"object-assign":3}],7:[function(require,module,exports){
+(function (global){
 global.ROSLIB = require('./RosLib');
-}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./RosLib":8}],10:[function(require,module,exports){
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./RosLib":6}],8:[function(require,module,exports){
 /**
  * @fileOverview
  * @author Russell Toris - rctoris@wpi.edu
@@ -2734,20 +1594,17 @@ var EventEmitter2 = require('eventemitter2').EventEmitter2;
  * An actionlib action client.
  *
  * Emits the following events:
- *  * 'timeout' - If a timeout occurred while sending a goal.
- *  * 'status' - The status messages received from the action server.
- *  * 'feedback' - The feedback messages received from the action server.
- *  * 'result' - The result returned from the action server.
+ *  * 'timeout' - if a timeout occurred while sending a goal
+ *  * 'status' - the status messages received from the action server
+ *  * 'feedback' -  the feedback messages received from the action server
+ *  * 'result' - the result returned from the action server
  *
- * @constructor
- * @param {Object} options
- * @param {Ros} options.ros - The ROSLIB.Ros connection handle.
- * @param {string} options.serverName - The action server name, like '/fibonacci'.
- * @param {string} options.actionName - The action message name, like 'actionlib_tutorials/FibonacciAction'.
- * @param {number} [options.timeout] - The timeout length when connecting to the action server.
- * @param {boolean} [options.omitFeedback] - The flag to indicate whether to omit the feedback channel or not.
- * @param {boolean} [options.omitStatus] - The flag to indicate whether to omit the status channel or not.
- * @param {boolean} [options.omitResult] - The flag to indicate whether to omit the result channel or not.
+ *  @constructor
+ *  @param options - object with following keys:
+ *   * ros - the ROSLIB.Ros connection handle
+ *   * serverName - the action server name, like /fibonacci
+ *   * actionName - the action message name, like 'actionlib_tutorials/FibonacciAction'
+ *   * timeout - the timeout length when connecting to the action server
  */
 function ActionClient(options) {
   var that = this;
@@ -2868,7 +1725,7 @@ ActionClient.prototype.dispose = function() {
 
 module.exports = ActionClient;
 
-},{"../core/Message":15,"../core/Topic":22,"eventemitter2":2}],11:[function(require,module,exports){
+},{"../core/Message":13,"../core/Topic":20,"eventemitter2":2}],9:[function(require,module,exports){
 /**
  * @fileOverview
  * @author Justin Young - justin@oodar.com.au
@@ -2880,18 +1737,18 @@ var Message = require('../core/Message');
 var EventEmitter2 = require('eventemitter2').EventEmitter2;
 
 /**
- * An actionlib action listener.
+ * An actionlib action listener
  *
  * Emits the following events:
- *  * 'status' - The status messages received from the action server.
- *  * 'feedback' - The feedback messages received from the action server.
- *  * 'result' - The result returned from the action server.
+ *  * 'status' - the status messages received from the action server
+ *  * 'feedback' -  the feedback messages received from the action server
+ *  * 'result' - the result returned from the action server
  *
- * @constructor
- * @param {Object} options
- * @param {Ros} options.ros - The ROSLIB.Ros connection handle.
- * @param {string} options.serverName - The action server name, like '/fibonacci'.
- * @param {string} options.actionName - The action message name, like 'actionlib_tutorials/FibonacciAction'.
+ *  @constructor
+ *  @param options - object with following keys:
+ *   * ros - the ROSLIB.Ros connection handle
+ *   * serverName - the action server name, like /fibonacci
+ *   * actionName - the action message name, like 'actionlib_tutorials/FibonacciAction'
  */
 function ActionListener(options) {
   var that = this;
@@ -2899,6 +1756,10 @@ function ActionListener(options) {
   this.ros = options.ros;
   this.serverName = options.serverName;
   this.actionName = options.actionName;
+  this.timeout = options.timeout;
+  this.omitFeedback = options.omitFeedback;
+  this.omitStatus = options.omitStatus;
+  this.omitResult = options.omitResult;
 
 
   // create the topics associated with actionlib
@@ -2953,7 +1814,7 @@ ActionListener.prototype.__proto__ = EventEmitter2.prototype;
 
 module.exports = ActionListener;
 
-},{"../core/Message":15,"../core/Topic":22,"eventemitter2":2}],12:[function(require,module,exports){
+},{"../core/Message":13,"../core/Topic":20,"eventemitter2":2}],10:[function(require,module,exports){
 /**
  * @fileOverview
  * @author Russell Toris - rctoris@wpi.edu
@@ -2963,15 +1824,15 @@ var Message = require('../core/Message');
 var EventEmitter2 = require('eventemitter2').EventEmitter2;
 
 /**
- * An actionlib goal that is associated with an action server.
+ * An actionlib goal goal is associated with an action server.
  *
  * Emits the following events:
- *  * 'timeout' - If a timeout occurred while sending a goal.
+ *  * 'timeout' - if a timeout occurred while sending a goal
  *
- * @constructor
- * @param {Object} options
- * @param {ActionClient} options.actionClient - The ROSLIB.ActionClient to use with this goal.
- * @param {Object} options.goalMessage - The JSON object containing the goal for the action server.
+ *  @constructor
+ *  @param object with following keys:
+ *   * actionClient - the ROSLIB.ActionClient to use with this goal
+ *   * goalMessage - The JSON object containing the goal for the action server
  */
 function Goal(options) {
   var that = this;
@@ -3018,7 +1879,7 @@ Goal.prototype.__proto__ = EventEmitter2.prototype;
 /**
  * Send the goal to the action server.
  *
- * @param {number} [timeout] - A timeout length for the goal's result.
+ * @param timeout (optional) - a timeout length for the goal's result
  */
 Goal.prototype.send = function(timeout) {
   var that = this;
@@ -3043,8 +1904,7 @@ Goal.prototype.cancel = function() {
 };
 
 module.exports = Goal;
-
-},{"../core/Message":15,"eventemitter2":2}],13:[function(require,module,exports){
+},{"../core/Message":13,"eventemitter2":2}],11:[function(require,module,exports){
 /**
  * @fileOverview
  * @author Laura Lindzey - lindzey@gmail.com
@@ -3058,15 +1918,16 @@ var EventEmitter2 = require('eventemitter2').EventEmitter2;
  * An actionlib action server client.
  *
  * Emits the following events:
- *  * 'goal' - Goal sent by action client.
- *  * 'cancel' - Action client has canceled the request.
+ *  * 'goal' - goal sent by action client
+ *  * 'cancel' - action client has canceled the request
  *
- * @constructor
- * @param {Object} options
- * @param {Ros} options.ros - The ROSLIB.Ros connection handle.
- * @param {string} options.serverName - The action server name, like '/fibonacci'.
- * @param {string} options.actionName - The action message name, like 'actionlib_tutorials/FibonacciAction'.
+ *  @constructor
+ *  @param options - object with following keys:
+ *   * ros - the ROSLIB.Ros connection handle
+ *   * serverName - the action server name, like /fibonacci
+ *   * actionName - the action message name, like 'actionlib_tutorials/FibonacciAction'
  */
+
 function SimpleActionServer(options) {
     var that = this;
     options = options || {};
@@ -3123,7 +1984,7 @@ function SimpleActionServer(options) {
     this.nextGoal = null; // the one that'll be preempting
 
     goalListener.subscribe(function(goalMessage) {
-
+        
     if(that.currentGoal) {
             that.nextGoal = goalMessage;
             // needs to happen AFTER rest is set up
@@ -3135,7 +1996,7 @@ function SimpleActionServer(options) {
     }
     });
 
-    // helper function to determine ordering of timestamps
+    // helper function for determing ordering of timestamps
     // returns t1 < t2
     var isEarlier = function(t1, t2) {
         if(t1.secs > t2.secs) {
@@ -3174,6 +2035,7 @@ function SimpleActionServer(options) {
             }
             if(that.currentGoal && isEarlier(that.currentGoal.goal_id.stamp,
                                              cancelMessage.stamp)) {
+                
                 that.emit('cancel');
             }
         }
@@ -3194,14 +2056,15 @@ function SimpleActionServer(options) {
 SimpleActionServer.prototype.__proto__ = EventEmitter2.prototype;
 
 /**
- * Set action state to succeeded and return to client.
- *
- * @param {Object} result - The result to return to the client.
- */
-SimpleActionServer.prototype.setSucceeded = function(result) {
+*  Set action state to succeeded and return to client
+*/
+
+SimpleActionServer.prototype.setSucceeded = function(result2) {
+    
+
     var resultMessage = new Message({
         status : {goal_id : this.currentGoal.goal_id, status : 3},
-        result : result
+        result : result2
     });
     this.resultPublisher.publish(resultMessage);
 
@@ -3216,44 +2079,24 @@ SimpleActionServer.prototype.setSucceeded = function(result) {
 };
 
 /**
- * Set action state to aborted and return to client.
- *
- * @param {Object} result - The result to return to the client.
- */
-SimpleActionServer.prototype.setAborted = function(result) {
-    var resultMessage = new Message({
-        status : {goal_id : this.currentGoal.goal_id, status : 4},
-        result : result
-    });
-    this.resultPublisher.publish(resultMessage);
+*  Function to send feedback
+*/
 
-    this.statusMessage.status_list = [];
-    if(this.nextGoal) {
-        this.currentGoal = this.nextGoal;
-        this.nextGoal = null;
-        this.emit('goal', this.currentGoal.goal);
-    } else {
-        this.currentGoal = null;
-    }
-};
+SimpleActionServer.prototype.sendFeedback = function(feedback2) {
 
-/**
- * Send a feedback message.
- *
- * @param {Object} feedback - The feedback to send to the client.
- */
-SimpleActionServer.prototype.sendFeedback = function(feedback) {
     var feedbackMessage = new Message({
         status : {goal_id : this.currentGoal.goal_id, status : 1},
-        feedback : feedback
+        feedback : feedback2
     });
     this.feedbackPublisher.publish(feedbackMessage);
 };
 
 /**
- * Handle case where client requests preemption.
- */
+*  Handle case where client requests preemption
+*/
+
 SimpleActionServer.prototype.setPreempted = function() {
+
     this.statusMessage.status_list = [];
     var resultMessage = new Message({
         status : {goal_id : this.currentGoal.goal_id, status : 2},
@@ -3270,8 +2113,7 @@ SimpleActionServer.prototype.setPreempted = function() {
 };
 
 module.exports = SimpleActionServer;
-
-},{"../core/Message":15,"../core/Topic":22,"eventemitter2":2}],14:[function(require,module,exports){
+},{"../core/Message":13,"../core/Topic":20,"eventemitter2":2}],12:[function(require,module,exports){
 var Ros = require('../core/Ros');
 var mixin = require('../mixin');
 
@@ -3284,9 +2126,9 @@ var action = module.exports = {
 
 mixin(Ros, ['ActionClient', 'SimpleActionServer'], action);
 
-},{"../core/Ros":17,"../mixin":29,"./ActionClient":10,"./ActionListener":11,"./Goal":12,"./SimpleActionServer":13}],15:[function(require,module,exports){
+},{"../core/Ros":15,"../mixin":27,"./ActionClient":8,"./ActionListener":9,"./Goal":10,"./SimpleActionServer":11}],13:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author Brandon Alexander - baalexander@gmail.com
  */
 
@@ -3296,16 +2138,16 @@ var assign = require('object-assign');
  * Message objects are used for publishing and subscribing to and from topics.
  *
  * @constructor
- * @param {Object} values - An object matching the fields defined in the .msg definition file.
+ * @param values - object matching the fields defined in the .msg definition file
  */
 function Message(values) {
   assign(this, values);
 }
 
 module.exports = Message;
-},{"object-assign":3}],16:[function(require,module,exports){
+},{"object-assign":3}],14:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author Brandon Alexander - baalexander@gmail.com
  */
 
@@ -3316,9 +2158,9 @@ var ServiceRequest = require('./ServiceRequest');
  * A ROS parameter.
  *
  * @constructor
- * @param {Object} options
- * @param {Ros} options.ros - The ROSLIB.Ros connection handle.
- * @param {string} options.name - The param name, like max_vel_x.
+ * @param options - possible keys include:
+ *   * ros - the ROSLIB.Ros connection handle
+ *   * name - the param name, like max_vel_x
  */
 function Param(options) {
   options = options || {};
@@ -3327,14 +2169,12 @@ function Param(options) {
 }
 
 /**
- * Fetch the value of the param.
+ * Fetches the value of the param.
  *
- * @param {function} callback - Function with the following params:
- * @param {Object} callback.value - The value of the param from ROS.
- * @param {function} [failedCallback] - Function when the service call failed with the following params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param callback - function with the following params:
+ *  * value - the value of the param from ROS.
  */
-Param.prototype.get = function(callback, failedCallback) {
+Param.prototype.get = function(callback) {
   var paramClient = new Service({
     ros : this.ros,
     name : '/rosapi/get_param',
@@ -3348,18 +2188,15 @@ Param.prototype.get = function(callback, failedCallback) {
   paramClient.callService(request, function(result) {
     var value = JSON.parse(result.value);
     callback(value);
-  }, failedCallback);
+  });
 };
 
 /**
- * Set the value of the param in ROS.
+ * Sets the value of the param in ROS.
  *
- * @param {Object} value - The value to set param to.
- * @param {function} [callback] - The callback function.
- * @param {function} [failedCallback] - The callback function when the service call failed.
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param value - value to set param to.
  */
-Param.prototype.set = function(value, callback, failedCallback) {
+Param.prototype.set = function(value, callback) {
   var paramClient = new Service({
     ros : this.ros,
     name : '/rosapi/set_param',
@@ -3371,17 +2208,13 @@ Param.prototype.set = function(value, callback, failedCallback) {
     value : JSON.stringify(value)
   });
 
-  paramClient.callService(request, callback, failedCallback);
+  paramClient.callService(request, callback);
 };
 
 /**
  * Delete this parameter on the ROS server.
- *
- * @param {function} [callback] - The callback function when the service call succeeded.
- * @param {function} [failedCallback] - The callback function when the service call failed.
- * @param {string} failedCallback.error - The error message reported by ROS.
  */
-Param.prototype.delete = function(callback, failedCallback) {
+Param.prototype.delete = function(callback) {
   var paramClient = new Service({
     ros : this.ros,
     name : '/rosapi/delete_param',
@@ -3392,14 +2225,13 @@ Param.prototype.delete = function(callback, failedCallback) {
     name : this.name
   });
 
-  paramClient.callService(request, callback, failedCallback);
+  paramClient.callService(request, callback);
 };
 
 module.exports = Param;
-
-},{"./Service":18,"./ServiceRequest":19}],17:[function(require,module,exports){
+},{"./Service":16,"./ServiceRequest":17}],15:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author Brandon Alexander - baalexander@gmail.com
  */
 
@@ -3417,28 +2249,26 @@ var EventEmitter2 = require('eventemitter2').EventEmitter2;
  * Manages connection to the server and all interactions with ROS.
  *
  * Emits the following events:
- *  * 'error' - There was an error with ROS.
- *  * 'connection' - Connected to the WebSocket server.
- *  * 'close' - Disconnected to the WebSocket server.
- *  * &#60;topicName&#62; - A message came from rosbridge with the given topic name.
- *  * &#60;serviceID&#62; - A service response came from rosbridge with the given ID.
+ *  * 'error' - there was an error with ROS
+ *  * 'connection' - connected to the WebSocket server
+ *  * 'close' - disconnected to the WebSocket server
+ *  * <topicName> - a message came from rosbridge with the given topic name
+ *  * <serviceID> - a service response came from rosbridge with the given ID
  *
  * @constructor
- * @param {Object} options
- * @param {string} [options.url] - The WebSocket URL for rosbridge or the node server URL to connect using socket.io (if socket.io exists in the page). Can be specified later with `connect`.
- * @param {boolean} [options.groovyCompatibility=true] - Don't use interfaces that changed after the last groovy release or rosbridge_suite and related tools.
- * @param {string} [options.transportLibrary=websocket] - One of 'websocket', 'workersocket', 'socket.io' or RTCPeerConnection instance controlling how the connection is created in `connect`.
- * @param {Object} [options.transportOptions={}] - The options to use when creating a connection. Currently only used if `transportLibrary` is RTCPeerConnection.
+ * @param options - possible keys include: <br>
+ *   * url (optional) - (can be specified later with `connect`) the WebSocket URL for rosbridge or the node server url to connect using socket.io (if socket.io exists in the page) <br>
+ *   * groovyCompatibility - don't use interfaces that changed after the last groovy release or rosbridge_suite and related tools (defaults to true)
+ *   * transportLibrary (optional) - one of 'websocket', 'workersocket' (default), 'socket.io' or RTCPeerConnection instance controlling how the connection is created in `connect`.
+ *   * transportOptions (optional) - the options to use use when creating a connection. Currently only used if `transportLibrary` is RTCPeerConnection.
  */
 function Ros(options) {
   options = options || {};
-  var that = this;
   this.socket = null;
   this.idCounter = 0;
   this.isConnected = false;
   this.transportLibrary = options.transportLibrary || 'websocket';
   this.transportOptions = options.transportOptions || {};
-  this._sendFunc = function(msg) { that.sendEncodedMessage(msg); };
 
   if (typeof options.groovyCompatibility === 'undefined') {
     this.groovyCompatibility = true;
@@ -3461,7 +2291,7 @@ Ros.prototype.__proto__ = EventEmitter2.prototype;
 /**
  * Connect to the specified WebSocket.
  *
- * @param {string} url - WebSocket URL or RTCDataChannel label for rosbridge.
+ * @param url - WebSocket URL or RTCDataChannel label for Rosbridge
  */
 Ros.prototype.connect = function(url) {
   if (this.transportLibrary === 'socket.io') {
@@ -3496,15 +2326,15 @@ Ros.prototype.close = function() {
 };
 
 /**
- * Send an authorization request to the server.
+ * Sends an authorization request to the server.
  *
- * @param {string} mac - MAC (hash) string given by the trusted source.
- * @param {string} client - IP of the client.
- * @param {string} dest - IP of the destination.
- * @param {string} rand - Random string given by the trusted source.
- * @param {Object} t - Time of the authorization request.
- * @param {string} level - User level as a string given by the client.
- * @param {Object} end - End time of the client's session.
+ * @param mac - MAC (hash) string given by the trusted source.
+ * @param client - IP of the client.
+ * @param dest - IP of the destination.
+ * @param rand - Random string given by the trusted source.
+ * @param t - Time of the authorization request.
+ * @param level - User level as a string given by the client.
+ * @param end - End time of the client's session.
  */
 Ros.prototype.authenticate = function(mac, client, dest, rand, t, level, end) {
   // create the request
@@ -3523,13 +2353,13 @@ Ros.prototype.authenticate = function(mac, client, dest, rand, t, level, end) {
 };
 
 /**
- * Send an encoded message over the WebSocket.
- *
- * @param {Object} messageEncoded - The encoded message to be sent.
+ * Sends the message over the WebSocket, but queues the message up if not yet
+ * connected.
  */
-Ros.prototype.sendEncodedMessage = function(messageEncoded) {
-  var emitter = null;
+Ros.prototype.callOnConnection = function(message) {
   var that = this;
+  var messageJson = JSON.stringify(message);
+  var emitter = null;
   if (this.transportLibrary === 'socket.io') {
     emitter = function(msg){that.socket.emit('operation', msg);};
   } else {
@@ -3538,32 +2368,18 @@ Ros.prototype.sendEncodedMessage = function(messageEncoded) {
 
   if (!this.isConnected) {
     that.once('connection', function() {
-      emitter(messageEncoded);
+      emitter(messageJson);
     });
   } else {
-    emitter(messageEncoded);
+    emitter(messageJson);
   }
 };
 
 /**
- * Send the message over the WebSocket, but queue the message up if not yet
- * connected.
+ * Sends a set_level request to the server
  *
- * @param {Object} message - The message to be sent.
- */
-Ros.prototype.callOnConnection = function(message) {
-  if (this.transportOptions.encoder) {
-    this.transportOptions.encoder(message, this._sendFunc);
-  } else {
-    this._sendFunc(JSON.stringify(message));
-  }
-};
-
-/**
- * Send a set_level request to the server.
- *
- * @param {string} level - Status level (none, error, warning, info).
- * @param {number} [id] - Operation ID to change status level on.
+ * @param level - Status level (none, error, warning, info)
+ * @param id - Optional: Operation ID to change status level on
  */
 Ros.prototype.setStatusLevel = function(level, id){
   var levelMsg = {
@@ -3576,12 +2392,12 @@ Ros.prototype.setStatusLevel = function(level, id){
 };
 
 /**
- * Retrieve a list of action servers in ROS as an array of string.
+ * Retrieves Action Servers in ROS as an array of string
  *
- * @param {function} callback - Function with the following params:
- * @param {string[]} callback.actionservers - Array of action server names.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param callback function with params:
+ *   * actionservers - Array of action server names
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getActionServers = function(callback, failedCallback) {
   var getActionServers = new Service({
@@ -3608,14 +2424,13 @@ Ros.prototype.getActionServers = function(callback, failedCallback) {
 };
 
 /**
- * Retrieve a list of topics in ROS as an array.
+ * Retrieves list of topics in ROS as an array.
  *
- * @param {function} callback - Function with the following params:
- * @param {Object} callback.result - The result object with the following params:
- * @param {string[]} callback.result.topics - Array of topic names.
- * @param {string[]} callback.result.types - Array of message type names.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param callback function with params:
+ *   * topics - Array of topic names
+ *   * types - Array of message type names
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getTopics = function(callback, failedCallback) {
   var topicsClient = new Service({
@@ -3642,13 +2457,13 @@ Ros.prototype.getTopics = function(callback, failedCallback) {
 };
 
 /**
- * Retrieve a list of topics in ROS as an array of a specific type.
+ * Retrieves Topics in ROS as an array as specific type
  *
- * @param {string} topicType - The topic type to find.
- * @param {function} callback - Function with the following params:
- * @param {string[]} callback.topics - Array of topic names.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param topicType topic type to find
+ * @param callback function with params:
+ *   * topics - Array of topic names
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getTopicsForType = function(topicType, callback, failedCallback) {
   var topicsForTypeClient = new Service({
@@ -3677,12 +2492,12 @@ Ros.prototype.getTopicsForType = function(topicType, callback, failedCallback) {
 };
 
 /**
- * Retrieve a list of active service names in ROS.
+ * Retrieves list of active service names in ROS.
  *
- * @param {function} callback - Function with the following params:
- * @param {string[]} callback.services - Array of service names.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param callback - function with the following params:
+ *   * services - array of service names
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getServices = function(callback, failedCallback) {
   var servicesClient = new Service({
@@ -3709,13 +2524,13 @@ Ros.prototype.getServices = function(callback, failedCallback) {
 };
 
 /**
- * Retrieve a list of services in ROS as an array as specific type.
+ * Retrieves list of services in ROS as an array as specific type
  *
- * @param {string} serviceType - The service type to find.
- * @param {function} callback - Function with the following params:
- * @param {string[]} callback.topics - Array of service names.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param serviceType service type to find
+ * @param callback function with params:
+ *   * topics - Array of service names
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getServicesForType = function(serviceType, callback, failedCallback) {
   var servicesForTypeClient = new Service({
@@ -3744,14 +2559,13 @@ Ros.prototype.getServicesForType = function(serviceType, callback, failedCallbac
 };
 
 /**
- * Retrieve the details of a ROS service request.
+ * Retrieves a detail of ROS service request.
  *
- * @param {string} type - The type of the service.
- * @param {function} callback - Function with the following params:
- * @param {Object} callback.result - The result object with the following params:
- * @param {string[]} callback.result.typedefs - An array containing the details of the service request.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param service name of service:
+ * @param callback - function with params:
+ *   * type - String of the service type
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getServiceRequestDetails = function(type, callback, failedCallback) {
   var serviceTypeClient = new Service({
@@ -3780,14 +2594,13 @@ Ros.prototype.getServiceRequestDetails = function(type, callback, failedCallback
 };
 
 /**
- * Retrieve the details of a ROS service response.
+ * Retrieves a detail of ROS service request.
  *
- * @param {string} type - The type of the service.
- * @param {function} callback - Function with the following params:
- * @param {Object} callback.result - The result object with the following params:
- * @param {string[]} callback.result.typedefs - An array containing the details of the service response.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param service name of service
+ * @param callback - function with params:
+ *   * type - String of the service type
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getServiceResponseDetails = function(type, callback, failedCallback) {
   var serviceTypeClient = new Service({
@@ -3816,12 +2629,12 @@ Ros.prototype.getServiceResponseDetails = function(type, callback, failedCallbac
 };
 
 /**
- * Retrieve a list of active node names in ROS.
+ * Retrieves list of active node names in ROS.
  *
- * @param {function} callback - Function with the following params:
- * @param {string[]} callback.nodes - Array of node names.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param callback - function with the following params:
+ *   * nodes - array of node names
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getNodes = function(callback, failedCallback) {
   var nodesClient = new Service({
@@ -3848,33 +2661,16 @@ Ros.prototype.getNodes = function(callback, failedCallback) {
 };
 
 /**
- * Retrieve a list of subscribed topics, publishing topics and services of a specific node.
- * <br>
- * These are the parameters if failedCallback is <strong>defined</strong>.
- *
- * @param {string} node - Name of the node.
- * @param {function} callback - Function with the following params:
- * @param {string[]} callback.subscriptions - Array of subscribed topic names.
- * @param {string[]} callback.publications - Array of published topic names.
- * @param {string[]} callback.services - Array of service names hosted.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
- *
- * @also
- *
- * Retrieve a list of subscribed topics, publishing topics and services of a specific node.
- * <br>
- * These are the parameters if failedCallback is <strong>undefined</strong>.
- *
- * @param {string} node - Name of the node.
- * @param {function} callback - Function with the following params:
- * @param {Object} callback.result - The result object with the following params:
- * @param {string[]} callback.result.subscribing - Array of subscribed topic names.
- * @param {string[]} callback.result.publishing - Array of published topic names.
- * @param {string[]} callback.result.services - Array of service names hosted.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
- */
+  * Retrieves list subscribed topics, publishing topics and services of a specific node
+  *
+  * @param node name of the node:
+  * @param callback - function with params:
+  *   * publications - array of published topic names
+  *   * subscriptions - array of subscribed topic names
+  *   * services - array of service names hosted
+  * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
+  */
 Ros.prototype.getNodeDetails = function(node, callback, failedCallback) {
   var nodesClient = new Service({
     ros : this,
@@ -3902,12 +2698,12 @@ Ros.prototype.getNodeDetails = function(node, callback, failedCallback) {
 };
 
 /**
- * Retrieve a list of parameter names from the ROS Parameter Server.
+ * Retrieves list of param names from the ROS Parameter Server.
  *
- * @param {function} callback - Function with the following params:
- * @param {string[]} callback.params - Array of param names.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param callback function with params:
+ *  * params - array of param names.
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getParams = function(callback, failedCallback) {
   var paramsClient = new Service({
@@ -3933,13 +2729,13 @@ Ros.prototype.getParams = function(callback, failedCallback) {
 };
 
 /**
- * Retrieve the type of a ROS topic.
+ * Retrieves a type of ROS topic.
  *
- * @param {string} topic - Name of the topic.
- * @param {function} callback - Function with the following params:
- * @param {string} callback.type - The type of the topic.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param topic name of the topic:
+ * @param callback - function with params:
+ *   * type - String of the topic type
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getTopicType = function(topic, callback, failedCallback) {
   var topicTypeClient = new Service({
@@ -3968,13 +2764,13 @@ Ros.prototype.getTopicType = function(topic, callback, failedCallback) {
 };
 
 /**
- * Retrieve the type of a ROS service.
+ * Retrieves a type of ROS service.
  *
- * @param {string} service - Name of the service.
- * @param {function} callback - Function with the following params:
- * @param {string} callback.type - The type of the service.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param service name of service:
+ * @param callback - function with params:
+ *   * type - String of the service type
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getServiceType = function(service, callback, failedCallback) {
   var serviceTypeClient = new Service({
@@ -4003,13 +2799,13 @@ Ros.prototype.getServiceType = function(service, callback, failedCallback) {
 };
 
 /**
- * Retrieve the details of a ROS message.
+ * Retrieves a detail of ROS message.
  *
- * @param {string} message - The name of the message type.
- * @param {function} callback - Function with the following params:
- * @param {string} callback.details - An array of the message details.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param message - String of a topic type
+ * @param callback - function with params:
+ *   * details - Array of the message detail
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Ros.prototype.getMessageDetails = function(message, callback, failedCallback) {
   var messageDetailClient = new Service({
@@ -4038,15 +2834,15 @@ Ros.prototype.getMessageDetails = function(message, callback, failedCallback) {
 };
 
 /**
- * Decode a typedef array into a dictionary like `rosmsg show foo/bar`.
+ * Decode a typedefs into a dictionary like `rosmsg show foo/bar`
  *
- * @param {Object[]} defs - Array of type_def dictionary.
+ * @param defs - array of type_def dictionary
  */
 Ros.prototype.decodeTypeDefs = function(defs) {
   var that = this;
 
+  // calls itself recursively to resolve type definition using hints.
   var decodeTypeDefsRec = function(theType, hints) {
-    // calls itself recursively to resolve type definition using hints.
     var typeDefDict = {};
     for (var i = 0; i < theType.fieldnames.length; i++) {
       var arrayLen = theType.fieldarraylen[i];
@@ -4072,7 +2868,6 @@ Ros.prototype.decodeTypeDefs = function(defs) {
         if (sub) {
           var subResult = decodeTypeDefsRec(sub, hints);
           if (arrayLen === -1) {
-            typeDefDict[fieldName] = subResult; // add this decoding result to dictionary
           }
           else {
             typeDefDict[fieldName] = [subResult];
@@ -4090,15 +2885,15 @@ Ros.prototype.decodeTypeDefs = function(defs) {
 };
 
 /**
- * Retrieve a list of topics and their associated type definitions.
+ * Retrieves list of topics and their associated type definitions.
  *
- * @param {function} callback - Function with the following params:
- * @param {Object} callback.result - The result object with the following params:
- * @param {string[]} callback.result.topics - Array of topic names.
- * @param {string[]} callback.result.types - Array of message type names.
- * @param {string[]} callback.result.typedefs_full_text - Array of full definitions of message types, similar to `gendeps --cat`.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param callback function with params:
+ *   * topics - Array of topic names
+ *   * types - Array of message type names
+ *   * typedefs_full_text - Array of full definitions of message types, similar to `gendeps --cat`
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
+ *
  */
 Ros.prototype.getTopicsAndRawTypes = function(callback, failedCallback) {
   var topicsAndRawTypesClient = new Service({
@@ -4127,9 +2922,9 @@ Ros.prototype.getTopicsAndRawTypes = function(callback, failedCallback) {
 
 module.exports = Ros;
 
-},{"../util/workerSocket":49,"./Service":18,"./ServiceRequest":19,"./SocketAdapter.js":21,"eventemitter2":2,"object-assign":3,"ws":46}],18:[function(require,module,exports){
+},{"../util/workerSocket":47,"./Service":16,"./ServiceRequest":17,"./SocketAdapter.js":19,"eventemitter2":2,"object-assign":3,"ws":43}],16:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author Brandon Alexander - baalexander@gmail.com
  */
 
@@ -4141,10 +2936,10 @@ var EventEmitter2 = require('eventemitter2').EventEmitter2;
  * A ROS service client.
  *
  * @constructor
- * @param {Object} options
- * @param {Ros} options.ros - The ROSLIB.Ros connection handle.
- * @param {string} options.name - The service name, like '/add_two_ints'.
- * @param {string} options.serviceType - The service type, like 'rospy_tutorials/AddTwoInts'.
+ * @params options - possible keys include:
+ *   * ros - the ROSLIB.Ros connection handle
+ *   * name - the service name, like /add_two_ints
+ *   * serviceType - the service type, like 'rospy_tutorials/AddTwoInts'
  */
 function Service(options) {
   options = options || {};
@@ -4157,14 +2952,14 @@ function Service(options) {
 }
 Service.prototype.__proto__ = EventEmitter2.prototype;
 /**
- * Call the service. Returns the service response in the
+ * Calls the service. Returns the service response in the
  * callback. Does nothing if this service is currently advertised.
  *
- * @param {ServiceRequest} request - The ROSLIB.ServiceRequest to send.
- * @param {function} callback - Function with the following params:
- * @param {Object} callback.response - The response from the service request.
- * @param {function} [failedCallback] - The callback function when the service call failed with params:
- * @param {string} failedCallback.error - The error message reported by ROS.
+ * @param request - the ROSLIB.ServiceRequest to send
+ * @param callback - function with params:
+ *   * response - the response from the service request
+ * @param failedCallback - the callback function when the service call failed (optional). Params:
+ *   * error - the error message reported by ROS
  */
 Service.prototype.callService = function(request, callback, failedCallback) {
   if (this.isAdvertised) {
@@ -4200,11 +2995,11 @@ Service.prototype.callService = function(request, callback, failedCallback) {
  * into a server. The callback will be called with every request
  * that's made on this service.
  *
- * @param {function} callback - This works similarly to the callback for a C++ service and should take the following params:
- * @param {ServiceRequest} callback.request - The service request.
- * @param {Object} callback.response - An empty dictionary. Take care not to overwrite this. Instead, only modify the values within.
- *     It should return true if the service has finished successfully,
- *     i.e., without any fatal errors.
+ * @param callback - This works similarly to the callback for a C++ service and should take the following params:
+ *   * request - the service request
+ *   * response - an empty dictionary. Take care not to overwrite this. Instead, only modify the values within.
+ *   It should return true if the service has finished successfully,
+ *   i.e. without any fatal errors.
  */
 Service.prototype.advertise = function(callback) {
   if (this.isAdvertised || typeof callback !== 'function') {
@@ -4252,9 +3047,9 @@ Service.prototype._serviceResponse = function(rosbridgeRequest) {
 
 module.exports = Service;
 
-},{"./ServiceRequest":19,"./ServiceResponse":20,"eventemitter2":2}],19:[function(require,module,exports){
+},{"./ServiceRequest":17,"./ServiceResponse":18,"eventemitter2":2}],17:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author Brandon Alexander - balexander@willowgarage.com
  */
 
@@ -4264,16 +3059,16 @@ var assign = require('object-assign');
  * A ServiceRequest is passed into the service call.
  *
  * @constructor
- * @param {Object} values - Object matching the fields defined in the .srv definition file.
+ * @param values - object matching the fields defined in the .srv definition file
  */
 function ServiceRequest(values) {
   assign(this, values);
 }
 
 module.exports = ServiceRequest;
-},{"object-assign":3}],20:[function(require,module,exports){
+},{"object-assign":3}],18:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author Brandon Alexander - balexander@willowgarage.com
  */
 
@@ -4283,14 +3078,14 @@ var assign = require('object-assign');
  * A ServiceResponse is returned from the service call.
  *
  * @constructor
- * @param {Object} values - Object matching the fields defined in the .srv definition file.
+ * @param values - object matching the fields defined in the .srv definition file
  */
 function ServiceResponse(values) {
   assign(this, values);
 }
 
 module.exports = ServiceResponse;
-},{"object-assign":3}],21:[function(require,module,exports){
+},{"object-assign":3}],19:[function(require,module,exports){
 /**
  * Socket event handling utilities for handling events on either
  * WebSocket and TCP sockets
@@ -4310,7 +3105,7 @@ if(typeof bson !== 'undefined'){
 }
 
 /**
- * Event listeners for a WebSocket or TCP socket to a JavaScript
+ * Events listeners for a WebSocket or TCP socket to a JavaScript
  * ROS Client. Sets up Messages for a given topic to trigger an
  * event on the ROS client.
  *
@@ -4318,11 +3113,6 @@ if(typeof bson !== 'undefined'){
  * @private
  */
 function SocketAdapter(client) {
-  var decoder = null;
-  if (client.transportOptions.decoder) {
-    decoder = client.transportOptions.decoder;
-  }
-
   function handleMessage(message) {
     if (message.op === 'publish') {
       client.emit(message.topic, message.msg);
@@ -4362,9 +3152,9 @@ function SocketAdapter(client) {
 
   return {
     /**
-     * Emit a 'connection' event on WebSocket connection.
+     * Emits a 'connection' event on WebSocket connection.
      *
-     * @param {function} event - The argument to emit with the event.
+     * @param event - the argument to emit with the event.
      * @memberof SocketAdapter
      */
     onopen: function onOpen(event) {
@@ -4373,9 +3163,9 @@ function SocketAdapter(client) {
     },
 
     /**
-     * Emit a 'close' event on WebSocket disconnection.
+     * Emits a 'close' event on WebSocket disconnection.
      *
-     * @param {function} event - The argument to emit with the event.
+     * @param event - the argument to emit with the event.
      * @memberof SocketAdapter
      */
     onclose: function onClose(event) {
@@ -4384,9 +3174,9 @@ function SocketAdapter(client) {
     },
 
     /**
-     * Emit an 'error' event whenever there was an error.
+     * Emits an 'error' event whenever there was an error.
      *
-     * @param {function} event - The argument to emit with the event.
+     * @param event - the argument to emit with the event.
      * @memberof SocketAdapter
      */
     onerror: function onError(event) {
@@ -4394,18 +3184,14 @@ function SocketAdapter(client) {
     },
 
     /**
-     * Parse message responses from rosbridge and send to the appropriate
+     * Parses message responses from rosbridge and sends to the appropriate
      * topic, service, or param.
      *
-     * @param {Object} data - The raw JSON message from rosbridge.
+     * @param message - the raw JSON message from rosbridge.
      * @memberof SocketAdapter
      */
     onmessage: function onMessage(data) {
-      if (decoder) {
-        decoder(data.data, function (message) {
-          handleMessage(message);
-        });
-      } else if (typeof Blob !== 'undefined' && data.data instanceof Blob) {
+      if (typeof Blob !== 'undefined' && data.data instanceof Blob) {
         decodeBSON(data.data, function (message) {
           handlePng(message, handleMessage);
         });
@@ -4422,9 +3208,9 @@ function SocketAdapter(client) {
 
 module.exports = SocketAdapter;
 
-},{"../util/cborTypedArrayTags":44,"../util/decompressPng":48,"cbor-js":1}],22:[function(require,module,exports){
+},{"../util/cborTypedArrayTags":42,"../util/decompressPng":45,"cbor-js":1}],20:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author Brandon Alexander - baalexander@gmail.com
  */
 
@@ -4435,20 +3221,20 @@ var Message = require('./Message');
  * Publish and/or subscribe to a topic in ROS.
  *
  * Emits the following events:
- *  * 'warning' - If there are any warning during the Topic creation.
- *  * 'message' - The message data from rosbridge.
+ *  * 'warning' - if there are any warning during the Topic creation
+ *  * 'message' - the message data from rosbridge
  *
  * @constructor
- * @param {Object} options
- * @param {Ros} options.ros - The ROSLIB.Ros connection handle.
- * @param {string} options.name - The topic name, like '/cmd_vel'.
- * @param {string} options.messageType - The message type, like 'std_msgs/String'.
- * @param {string} [options.compression=none] - The type of compression to use, like 'png', 'cbor', or 'cbor-raw'.
- * @param {number} [options.throttle_rate=0] - The rate (in ms in between messages) at which to throttle the topics.
- * @param {number} [options.queue_size=100] - The queue created at bridge side for re-publishing webtopics.
- * @param {boolean} [options.latch=false] - Latch the topic when publishing.
- * @param {number} [options.queue_length=0] - The queue length at bridge side used when subscribing.
- * @param {boolean} [options.reconnect_on_close=true] - The flag to enable resubscription and readvertisement on close event.
+ * @param options - object with following keys:
+ *   * ros - the ROSLIB.Ros connection handle
+ *   * name - the topic name, like /cmd_vel
+ *   * messageType - the message type, like 'std_msgs/String'
+ *   * compression - the type of compression to use, like 'png', 'cbor', or 'cbor-raw'
+ *   * throttle_rate - the rate (in ms in between messages) at which to throttle the topics
+ *   * queue_size - the queue created at bridge side for re-publishing webtopics (defaults to 100)
+ *   * latch - latch the topic when publishing
+ *   * queue_length - the queue length at bridge side used when subscribing (defaults to 0, no queueing).
+ *   * reconnect_on_close - the flag to enable resubscription and readvertisement on close event(defaults to true).
  */
 function Topic(options) {
   options = options || {};
@@ -4510,8 +3296,8 @@ Topic.prototype.__proto__ = EventEmitter2.prototype;
  * Every time a message is published for the given topic, the callback
  * will be called with the message object.
  *
- * @param {function} callback - Function with the following params:
- * @param {Object} callback.message - The published message.
+ * @param callback - function with the following params:
+ *   * message - the published message
  */
 Topic.prototype.subscribe = function(callback) {
   if (typeof callback === 'function') {
@@ -4534,13 +3320,13 @@ Topic.prototype.subscribe = function(callback) {
 };
 
 /**
- * Unregister as a subscriber for the topic. Unsubscribing will stop
- * and remove all subscribe callbacks. To remove a callback, you must
- * explicitly pass the callback function in.
+ * Unregisters as a subscriber for the topic. Unsubscribing stop remove
+ * all subscribe callbacks. To remove a call back, you must explicitly
+ * pass the callback function in.
  *
- * @param {function} [callback] - The callback to unregister, if
- *     provided and other listeners are registered the topic won't
- *     unsubscribe, just stop emitting to the passed listener.
+ * @param callback - the optional callback to unregister, if
+ *     * provided and other listeners are registered the topic won't
+ *     * unsubscribe, just stop emitting to the passed listener
  */
 Topic.prototype.unsubscribe = function(callback) {
   if (callback) {
@@ -4565,7 +3351,7 @@ Topic.prototype.unsubscribe = function(callback) {
 
 
 /**
- * Register as a publisher for the topic.
+ * Registers as a publisher for the topic.
  */
 Topic.prototype.advertise = function() {
   if (this.isAdvertised) {
@@ -4591,7 +3377,7 @@ Topic.prototype.advertise = function() {
 };
 
 /**
- * Unregister as a publisher for the topic.
+ * Unregisters as a publisher for the topic.
  */
 Topic.prototype.unadvertise = function() {
   if (!this.isAdvertised) {
@@ -4612,7 +3398,7 @@ Topic.prototype.unadvertise = function() {
 /**
  * Publish the message.
  *
- * @param {Message} message - A ROSLIB.Message object.
+ * @param message - A ROSLIB.Message object.
  */
 Topic.prototype.publish = function(message) {
   if (!this.isAdvertised) {
@@ -4632,7 +3418,7 @@ Topic.prototype.publish = function(message) {
 
 module.exports = Topic;
 
-},{"./Message":15,"eventemitter2":2}],23:[function(require,module,exports){
+},{"./Message":13,"eventemitter2":2}],21:[function(require,module,exports){
 var mixin = require('../mixin');
 
 var core = module.exports = {
@@ -4647,9 +3433,9 @@ var core = module.exports = {
 
 mixin(core.Ros, ['Param', 'Service', 'Topic'], core);
 
-},{"../mixin":29,"./Message":15,"./Param":16,"./Ros":17,"./Service":18,"./ServiceRequest":19,"./ServiceResponse":20,"./Topic":22}],24:[function(require,module,exports){
+},{"../mixin":27,"./Message":13,"./Param":14,"./Ros":15,"./Service":16,"./ServiceRequest":17,"./ServiceResponse":18,"./Topic":20}],22:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author David Gossow - dgossow@willowgarage.com
  */
 
@@ -4659,10 +3445,10 @@ var Quaternion = require('./Quaternion');
 /**
  * A Pose in 3D space. Values are copied into this object.
  *
- * @constructor
- * @param {Object} options
- * @param {Vector3} options.position - The ROSLIB.Vector3 describing the position.
- * @param {Quaternion} options.orientation - The ROSLIB.Quaternion describing the orientation.
+ *  @constructor
+ *  @param options - object with following keys:
+ *   * position - the Vector3 describing the position
+ *   * orientation - the ROSLIB.Quaternion describing the orientation
  */
 function Pose(options) {
   options = options || {};
@@ -4674,7 +3460,7 @@ function Pose(options) {
 /**
  * Apply a transform against this pose.
  *
- * @param {Transform} tf - The transform to be applied.
+ * @param tf the transform
  */
 Pose.prototype.applyTransform = function(tf) {
   this.position.multiplyQuaternion(tf.rotation);
@@ -4687,16 +3473,16 @@ Pose.prototype.applyTransform = function(tf) {
 /**
  * Clone a copy of this pose.
  *
- * @returns {Pose} The cloned pose.
+ * @returns the cloned pose
  */
 Pose.prototype.clone = function() {
   return new Pose(this);
 };
 
 /**
- * Multiply this pose with another pose without altering this pose.
+ * Multiplies this pose with another pose without altering this pose.
  *
- * @returns {Pose} The result of the multiplication.
+ * @returns Result of multiplication.
  */
 Pose.prototype.multiply = function(pose) {
   var p = pose.clone();
@@ -4705,9 +3491,9 @@ Pose.prototype.multiply = function(pose) {
 };
 
 /**
- * Compute the inverse of this pose.
+ * Computes the inverse of this pose.
  *
- * @returns {Pose} The inverse of the pose.
+ * @returns Inverse of pose.
  */
 Pose.prototype.getInverse = function() {
   var inverse = this.clone();
@@ -4720,22 +3506,21 @@ Pose.prototype.getInverse = function() {
 };
 
 module.exports = Pose;
-
-},{"./Quaternion":25,"./Vector3":27}],25:[function(require,module,exports){
+},{"./Quaternion":23,"./Vector3":25}],23:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author David Gossow - dgossow@willowgarage.com
  */
 
 /**
  * A Quaternion.
  *
- * @constructor
- * @param {Object} options
- * @param {number} [options.x=0] - The x value.
- * @param {number} [options.y=0] - The y value.
- * @param {number} [options.z=0] - The z value.
- * @param {number} [options.w=1] - The w value.
+ *  @constructor
+ *  @param options - object with following keys:
+ *   * x - the x value
+ *   * y - the y value
+ *   * z - the z value
+ *   * w - the w value
  */
 function Quaternion(options) {
   options = options || {};
@@ -4791,7 +3576,7 @@ Quaternion.prototype.invert = function() {
 /**
  * Set the values of this quaternion to the product of itself and the given quaternion.
  *
- * @param {Quaternion} q - The quaternion to multiply with.
+ * @param q the quaternion to multiply with
  */
 Quaternion.prototype.multiply = function(q) {
   var newX = this.x * q.w + this.y * q.z - this.z * q.y + this.w * q.x;
@@ -4807,7 +3592,7 @@ Quaternion.prototype.multiply = function(q) {
 /**
  * Clone a copy of this quaternion.
  *
- * @returns {Quaternion} The cloned quaternion.
+ * @returns the cloned quaternion
  */
 Quaternion.prototype.clone = function() {
   return new Quaternion(this);
@@ -4815,9 +3600,9 @@ Quaternion.prototype.clone = function() {
 
 module.exports = Quaternion;
 
-},{}],26:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author David Gossow - dgossow@willowgarage.com
  */
 
@@ -4827,10 +3612,10 @@ var Quaternion = require('./Quaternion');
 /**
  * A Transform in 3-space. Values are copied into this object.
  *
- * @constructor
- * @param {Object} options
- * @param {Vector3} options.translation - The ROSLIB.Vector3 describing the translation.
- * @param {Quaternion} options.rotation - The ROSLIB.Quaternion describing the rotation.
+ *  @constructor
+ *  @param options - object with following keys:
+ *   * translation - the Vector3 describing the translation
+ *   * rotation - the ROSLIB.Quaternion describing the rotation
  */
 function Transform(options) {
   options = options || {};
@@ -4842,28 +3627,27 @@ function Transform(options) {
 /**
  * Clone a copy of this transform.
  *
- * @returns {Transform} The cloned transform.
+ * @returns the cloned transform
  */
 Transform.prototype.clone = function() {
   return new Transform(this);
 };
 
 module.exports = Transform;
-
-},{"./Quaternion":25,"./Vector3":27}],27:[function(require,module,exports){
+},{"./Quaternion":23,"./Vector3":25}],25:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author David Gossow - dgossow@willowgarage.com
  */
 
 /**
  * A 3D vector.
  *
- * @constructor
- * @param {Object} options
- * @param {number} [options.x=0] - The x value.
- * @param {number} [options.y=0] - The y value.
- * @param {number} [options.z=0] - The z value.
+ *  @constructor
+ *  @param options - object with following keys:
+ *   * x - the x value
+ *   * y - the y value
+ *   * z - the z value
  */
 function Vector3(options) {
   options = options || {};
@@ -4875,7 +3659,7 @@ function Vector3(options) {
 /**
  * Set the values of this vector to the sum of itself and the given vector.
  *
- * @param {Vector3} v - The vector to add with.
+ * @param v the vector to add with
  */
 Vector3.prototype.add = function(v) {
   this.x += v.x;
@@ -4886,7 +3670,7 @@ Vector3.prototype.add = function(v) {
 /**
  * Set the values of this vector to the difference of itself and the given vector.
  *
- * @param {Vector3} v - The vector to subtract with.
+ * @param v the vector to subtract with
  */
 Vector3.prototype.subtract = function(v) {
   this.x -= v.x;
@@ -4897,7 +3681,7 @@ Vector3.prototype.subtract = function(v) {
 /**
  * Multiply the given Quaternion with this vector.
  *
- * @param {Quaternion} q - The quaternion to multiply with.
+ * @param q - the quaternion to multiply with
  */
 Vector3.prototype.multiplyQuaternion = function(q) {
   var ix = q.w * this.x + q.y * this.z - q.z * this.y;
@@ -4912,15 +3696,14 @@ Vector3.prototype.multiplyQuaternion = function(q) {
 /**
  * Clone a copy of this vector.
  *
- * @returns {Vector3} The cloned vector.
+ * @returns the cloned vector
  */
 Vector3.prototype.clone = function() {
   return new Vector3(this);
 };
 
 module.exports = Vector3;
-
-},{}],28:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports = {
     Pose: require('./Pose'),
     Quaternion: require('./Quaternion'),
@@ -4928,7 +3711,7 @@ module.exports = {
     Vector3: require('./Vector3')
 };
 
-},{"./Pose":24,"./Quaternion":25,"./Transform":26,"./Vector3":27}],29:[function(require,module,exports){
+},{"./Pose":22,"./Quaternion":23,"./Transform":24,"./Vector3":25}],27:[function(require,module,exports){
 /**
  * Mixin a feature to the core/Ros prototype.
  * For example, mixin(Ros, ['Topic'], {Topic: <Topic>})
@@ -4947,9 +3730,9 @@ module.exports = function(Ros, classes, features) {
     });
 };
 
-},{}],30:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileoverview
  * @author David Gossow - dgossow@willowgarage.com
  */
 
@@ -4965,23 +3748,24 @@ var Transform = require('../math/Transform');
 /**
  * A TF Client that listens to TFs from tf2_web_republisher.
  *
- * @constructor
- * @param {Object} options
- * @param {Ros} options.ros - The ROSLIB.Ros connection handle.
- * @param {string} [options.fixedFrame=base_link] - The fixed frame.
- * @param {number} [options.angularThres=2.0] - The angular threshold for the TF republisher.
- * @param {number} [options.transThres=0.01] - The translation threshold for the TF republisher.
- * @param {number} [options.rate=10.0] - The rate for the TF republisher.
- * @param {number} [options.updateDelay=50] - The time (in ms) to wait after a new subscription
- *     to update the TF republisher's list of TFs.
- * @param {number} [options.topicTimeout=2.0] - The timeout parameter for the TF republisher.
- * @param {string} [options.serverName=/tf2_web_republisher] - The name of the tf2_web_republisher server.
- * @param {string} [options.repubServiceName=/republish_tfs] - The name of the republish_tfs service (non groovy compatibility mode only).
+ *  @constructor
+ *  @param options - object with following keys:
+ *   * ros - the ROSLIB.Ros connection handle
+ *   * fixedFrame - the fixed frame, like /base_link
+ *   * angularThres - the angular threshold for the TF republisher
+ *   * transThres - the translation threshold for the TF republisher
+ *   * rate - the rate for the TF republisher
+ *   * updateDelay - the time (in ms) to wait after a new subscription
+ *                   to update the TF republisher's list of TFs
+ *   * topicTimeout - the timeout parameter for the TF republisher
+ *   * serverName (optional) - the name of the tf2_web_republisher server
+ *   * repubServiceName (optional) - the name of the republish_tfs service (non groovy compatibility mode only)
+ *   																 default: '/republish_tfs'
  */
 function TFClient(options) {
   options = options || {};
   this.ros = options.ros;
-  this.fixedFrame = options.fixedFrame || 'base_link';
+  this.fixedFrame = options.fixedFrame || '/base_link';
   this.angularThres = options.angularThres || 2.0;
   this.transThres = options.transThres || 0.01;
   this.rate = options.rate || 10.0;
@@ -5000,10 +3784,8 @@ function TFClient(options) {
   this.currentTopic = false;
   this.frameInfos = {};
   this.republisherUpdateRequested = false;
-  this._subscribeCB = null;
-  this._isDisposed = false;
 
-  // Create an Action Client
+  // Create an Action client
   this.actionClient = new ActionClient({
     ros : options.ros,
     serverName : this.serverName,
@@ -5012,7 +3794,7 @@ function TFClient(options) {
     omitResult : true
   });
 
-  // Create a Service Client
+  // Create a Service client
   this.serviceClient = new Service({
     ros: options.ros,
     name: this.repubServiceName,
@@ -5024,7 +3806,7 @@ function TFClient(options) {
  * Process the incoming TF message and send them out using the callback
  * functions.
  *
- * @param {Object} tf - The TF message from the server.
+ * @param tf - the TF message from the server
  */
 TFClient.prototype.processTFArray = function(tf) {
   var that = this;
@@ -5089,21 +3871,15 @@ TFClient.prototype.updateGoal = function() {
 
 /**
  * Process the service response and subscribe to the tf republisher
- * topic.
+ * topic
  *
- * @param {Object} response - The service response containing the topic name.
+ * @param response the service response containing the topic name
  */
 TFClient.prototype.processResponse = function(response) {
-  // Do not setup a topic subscription if already disposed. Prevents a race condition where
-  // The dispose() function is called before the service call receives a response.
-  if (this._isDisposed) {
-    return;
-  }
-
   // if we subscribed to a topic before, unsubscribe so
   // the republisher stops publishing it
   if (this.currentTopic) {
-    this.currentTopic.unsubscribe(this._subscribeCB);
+    this.currentTopic.unsubscribe();
   }
 
   this.currentTopic = new Topic({
@@ -5111,16 +3887,15 @@ TFClient.prototype.processResponse = function(response) {
     name: response.topic_name,
     messageType: 'tf2_web_republisher/TFArray'
   });
-  this._subscribeCB = this.processTFArray.bind(this);
-  this.currentTopic.subscribe(this._subscribeCB);
+  this.currentTopic.subscribe(this.processTFArray.bind(this));
 };
 
 /**
  * Subscribe to the given TF frame.
  *
- * @param {string} frameID - The TF frame to subscribe to.
- * @param {function} callback - Function with the following params:
- * @param {Transform} callback.transform - The transform data.
+ * @param frameID - the TF frame to subscribe to
+ * @param callback - function with params:
+ *   * transform - the transform data
  */
 TFClient.prototype.subscribe = function(frameID, callback) {
   // remove leading slash, if it's there
@@ -5128,7 +3903,7 @@ TFClient.prototype.subscribe = function(frameID, callback) {
   {
     frameID = frameID.substring(1);
   }
-  // if there is no callback registered for the given frame, create empty callback list
+  // if there is no callback registered for the given frame, create emtpy callback list
   if (!this.frameInfos[frameID]) {
     this.frameInfos[frameID] = {
       cbs: []
@@ -5138,7 +3913,7 @@ TFClient.prototype.subscribe = function(frameID, callback) {
       this.republisherUpdateRequested = true;
     }
   }
-  // if we already have a transform, callback immediately
+  // if we already have a transform, call back immediately
   else if (this.frameInfos[frameID].transform) {
     callback(this.frameInfos[frameID].transform);
   }
@@ -5148,8 +3923,8 @@ TFClient.prototype.subscribe = function(frameID, callback) {
 /**
  * Unsubscribe from the given TF frame.
  *
- * @param {string} frameID - The TF frame to unsubscribe from.
- * @param {function} callback - The callback function to remove.
+ * @param frameID - the TF frame to unsubscribe from
+ * @param callback - the callback function to remove
  */
 TFClient.prototype.unsubscribe = function(frameID, callback) {
   // remove leading slash, if it's there
@@ -5172,16 +3947,15 @@ TFClient.prototype.unsubscribe = function(frameID, callback) {
  * Unsubscribe and unadvertise all topics associated with this TFClient.
  */
 TFClient.prototype.dispose = function() {
-  this._isDisposed = true;
   this.actionClient.dispose();
   if (this.currentTopic) {
-    this.currentTopic.unsubscribe(this._subscribeCB);
+    this.currentTopic.unsubscribe();
   }
 };
 
 module.exports = TFClient;
 
-},{"../actionlib/ActionClient":10,"../actionlib/Goal":12,"../core/Service.js":18,"../core/ServiceRequest.js":19,"../core/Topic.js":22,"../math/Transform":26}],31:[function(require,module,exports){
+},{"../actionlib/ActionClient":8,"../actionlib/Goal":10,"../core/Service.js":16,"../core/ServiceRequest.js":17,"../core/Topic.js":20,"../math/Transform":24}],29:[function(require,module,exports){
 var Ros = require('../core/Ros');
 var mixin = require('../mixin');
 
@@ -5190,9 +3964,9 @@ var tf = module.exports = {
 };
 
 mixin(Ros, ['TFClient'], tf);
-},{"../core/Ros":17,"../mixin":29,"./TFClient":30}],32:[function(require,module,exports){
+},{"../core/Ros":15,"../mixin":27,"./TFClient":28}],30:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileOverview 
  * @author Benjamin Pitzer - ben.pitzer@gmail.com
  * @author Russell Toris - rctoris@wpi.edu
  */
@@ -5204,8 +3978,8 @@ var UrdfTypes = require('./UrdfTypes');
  * A Box element in a URDF.
  *
  * @constructor
- * @param {Object} options
- * @param {Element} options.xml - The XML element to parse.
+ * @param options - object with following keys:
+ *  * xml - the XML element to parse
  */
 function UrdfBox(options) {
   this.dimension = null;
@@ -5221,10 +3995,9 @@ function UrdfBox(options) {
 }
 
 module.exports = UrdfBox;
-
-},{"../math/Vector3":27,"./UrdfTypes":41}],33:[function(require,module,exports){
+},{"../math/Vector3":25,"./UrdfTypes":39}],31:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileOverview 
  * @author Benjamin Pitzer - ben.pitzer@gmail.com
  * @author Russell Toris - rctoris@wpi.edu
  */
@@ -5233,8 +4006,8 @@ module.exports = UrdfBox;
  * A Color element in a URDF.
  *
  * @constructor
- * @param {Object} options
- * @param {Element} options.xml - The XML element to parse.
+ * @param options - object with following keys:
+ *  * xml - the XML element to parse
  */
 function UrdfColor(options) {
   // Parse the xml string
@@ -5246,10 +4019,9 @@ function UrdfColor(options) {
 }
 
 module.exports = UrdfColor;
-
-},{}],34:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileOverview 
  * @author Benjamin Pitzer - ben.pitzer@gmail.com
  * @author Russell Toris - rctoris@wpi.edu
  */
@@ -5260,8 +4032,8 @@ var UrdfTypes = require('./UrdfTypes');
  * A Cylinder element in a URDF.
  *
  * @constructor
- * @param {Object} options
- * @param {Element} options.xml - The XML element to parse.
+ * @param options - object with following keys:
+ *  * xml - the XML element to parse
  */
 function UrdfCylinder(options) {
   this.type = UrdfTypes.URDF_CYLINDER;
@@ -5270,11 +4042,10 @@ function UrdfCylinder(options) {
 }
 
 module.exports = UrdfCylinder;
-
-},{"./UrdfTypes":41}],35:[function(require,module,exports){
+},{"./UrdfTypes":39}],33:[function(require,module,exports){
 /**
  * @fileOverview
- * @author David V. Lu!! - davidvlu@gmail.com
+ * @author David V. Lu!!  davidvlu@gmail.com
  */
 
 var Pose = require('../math/Pose');
@@ -5285,8 +4056,8 @@ var Quaternion = require('../math/Quaternion');
  * A Joint element in a URDF.
  *
  * @constructor
- * @param {Object} options
- * @param {Element} options.xml - The XML element to parse.
+ * @param options - object with following keys:
+ *  * xml - the XML element to parse
  */
 function UrdfJoint(options) {
   this.name = options.xml.getAttribute('name');
@@ -5364,9 +4135,9 @@ function UrdfJoint(options) {
 
 module.exports = UrdfJoint;
 
-},{"../math/Pose":24,"../math/Quaternion":25,"../math/Vector3":27}],36:[function(require,module,exports){
+},{"../math/Pose":22,"../math/Quaternion":23,"../math/Vector3":25}],34:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileOverview 
  * @author Benjamin Pitzer - ben.pitzer@gmail.com
  * @author Russell Toris - rctoris@wpi.edu
  */
@@ -5377,8 +4148,8 @@ var UrdfVisual = require('./UrdfVisual');
  * A Link element in a URDF.
  *
  * @constructor
- * @param {Object} options
- * @param {Element} options.xml - The XML element to parse.
+ * @param options - object with following keys:
+ *  * xml - the XML element to parse
  */
 function UrdfLink(options) {
   this.name = options.xml.getAttribute('name');
@@ -5393,10 +4164,9 @@ function UrdfLink(options) {
 }
 
 module.exports = UrdfLink;
-
-},{"./UrdfVisual":42}],37:[function(require,module,exports){
+},{"./UrdfVisual":40}],35:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileOverview 
  * @author Benjamin Pitzer - ben.pitzer@gmail.com
  * @author Russell Toris - rctoris@wpi.edu
  */
@@ -5407,8 +4177,8 @@ var UrdfColor = require('./UrdfColor');
  * A Material element in a URDF.
  *
  * @constructor
- * @param {Object} options
- * @param {Element} options.xml - The XML element to parse.
+ * @param options - object with following keys:
+ *  * xml - the XML element to parse
  */
 function UrdfMaterial(options) {
   this.textureFilename = null;
@@ -5444,9 +4214,9 @@ UrdfMaterial.prototype.assign = function(obj) {
 
 module.exports = UrdfMaterial;
 
-},{"./UrdfColor":33,"object-assign":3}],38:[function(require,module,exports){
+},{"./UrdfColor":31,"object-assign":3}],36:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileOverview 
  * @author Benjamin Pitzer - ben.pitzer@gmail.com
  * @author Russell Toris - rctoris@wpi.edu
  */
@@ -5458,8 +4228,8 @@ var UrdfTypes = require('./UrdfTypes');
  * A Mesh element in a URDF.
  *
  * @constructor
- * @param {Object} options
- * @param {Element} options.xml - The XML element to parse.
+ * @param options - object with following keys:
+ *  * xml - the XML element to parse
  */
 function UrdfMesh(options) {
   this.scale = null;
@@ -5481,10 +4251,9 @@ function UrdfMesh(options) {
 }
 
 module.exports = UrdfMesh;
-
-},{"../math/Vector3":27,"./UrdfTypes":41}],39:[function(require,module,exports){
+},{"../math/Vector3":25,"./UrdfTypes":39}],37:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileOverview 
  * @author Benjamin Pitzer - ben.pitzer@gmail.com
  * @author Russell Toris - rctoris@wpi.edu
  */
@@ -5492,7 +4261,7 @@ module.exports = UrdfMesh;
 var UrdfMaterial = require('./UrdfMaterial');
 var UrdfLink = require('./UrdfLink');
 var UrdfJoint = require('./UrdfJoint');
-var DOMParser = require('@xmldom/xmldom').DOMParser;
+var DOMParser = require('xmldom').DOMParser;
 
 // See https://developer.mozilla.org/docs/XPathResult#Constants
 var XPATH_FIRST_ORDERED_NODE_TYPE = 9;
@@ -5501,9 +4270,9 @@ var XPATH_FIRST_ORDERED_NODE_TYPE = 9;
  * A URDF Model can be used to parse a given URDF into the appropriate elements.
  *
  * @constructor
- * @param {Object} options
- * @param {Element} options.xml - The XML element to parse.
- * @param {string} options.string - The XML element to parse as a string.
+ * @param options - object with following keys:
+ *  * xml - the XML element to parse
+ *  * string - the XML element to parse as a string
  */
 function UrdfModel(options) {
   options = options || {};
@@ -5555,8 +4324,8 @@ function UrdfModel(options) {
         // Check for a material
         for( var j=0; j<link.visuals.length; j++ )
         {
-          var mat = link.visuals[j].material;
-          if ( mat !== null && mat.name ) {
+          var mat = link.visuals[j].material; 
+          if ( mat !== null ) {
             if (this.materials[mat.name] !== void 0) {
               link.visuals[j].material = this.materials[mat.name];
             } else {
@@ -5579,9 +4348,9 @@ function UrdfModel(options) {
 
 module.exports = UrdfModel;
 
-},{"./UrdfJoint":35,"./UrdfLink":36,"./UrdfMaterial":37,"@xmldom/xmldom":45}],40:[function(require,module,exports){
+},{"./UrdfJoint":33,"./UrdfLink":34,"./UrdfMaterial":35,"xmldom":46}],38:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileOverview 
  * @author Benjamin Pitzer - ben.pitzer@gmail.com
  * @author Russell Toris - rctoris@wpi.edu
  */
@@ -5592,8 +4361,8 @@ var UrdfTypes = require('./UrdfTypes');
  * A Sphere element in a URDF.
  *
  * @constructor
- * @param {Object} options
- * @param {Element} options.xml - The XML element to parse.
+ * @param options - object with following keys:
+ *  * xml - the XML element to parse
  */
 function UrdfSphere(options) {
   this.type = UrdfTypes.URDF_SPHERE;
@@ -5601,8 +4370,7 @@ function UrdfSphere(options) {
 }
 
 module.exports = UrdfSphere;
-
-},{"./UrdfTypes":41}],41:[function(require,module,exports){
+},{"./UrdfTypes":39}],39:[function(require,module,exports){
 module.exports = {
 	URDF_SPHERE : 0,
 	URDF_BOX : 1,
@@ -5610,9 +4378,9 @@ module.exports = {
 	URDF_MESH : 3
 };
 
-},{}],42:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 /**
- * @fileOverview
+ * @fileOverview 
  * @author Benjamin Pitzer - ben.pitzer@gmail.com
  * @author Russell Toris - rctoris@wpi.edu
  */
@@ -5631,8 +4399,8 @@ var UrdfSphere = require('./UrdfSphere');
  * A Visual element in a URDF.
  *
  * @constructor
- * @param {Object} options
- * @param {Element} options.xml - The XML element to parse.
+ * @param options - object with following keys:
+ *  * xml - the XML element to parse
  */
 function UrdfVisual(options) {
   var xml = options.xml;
@@ -5741,8 +4509,7 @@ function UrdfVisual(options) {
 }
 
 module.exports = UrdfVisual;
-
-},{"../math/Pose":24,"../math/Quaternion":25,"../math/Vector3":27,"./UrdfBox":32,"./UrdfCylinder":34,"./UrdfMaterial":37,"./UrdfMesh":38,"./UrdfSphere":40}],43:[function(require,module,exports){
+},{"../math/Pose":22,"../math/Quaternion":23,"../math/Vector3":25,"./UrdfBox":30,"./UrdfCylinder":32,"./UrdfMaterial":35,"./UrdfMesh":36,"./UrdfSphere":38}],41:[function(require,module,exports){
 module.exports = require('object-assign')({
     UrdfBox: require('./UrdfBox'),
     UrdfColor: require('./UrdfColor'),
@@ -5755,7 +4522,7 @@ module.exports = require('object-assign')({
     UrdfVisual: require('./UrdfVisual')
 }, require('./UrdfTypes'));
 
-},{"./UrdfBox":32,"./UrdfColor":33,"./UrdfCylinder":34,"./UrdfLink":36,"./UrdfMaterial":37,"./UrdfMesh":38,"./UrdfModel":39,"./UrdfSphere":40,"./UrdfTypes":41,"./UrdfVisual":42,"object-assign":3}],44:[function(require,module,exports){
+},{"./UrdfBox":30,"./UrdfColor":31,"./UrdfCylinder":32,"./UrdfLink":34,"./UrdfMaterial":35,"./UrdfMesh":36,"./UrdfModel":37,"./UrdfSphere":38,"./UrdfTypes":39,"./UrdfVisual":40,"object-assign":3}],42:[function(require,module,exports){
 'use strict';
 
 var UPPER32 = Math.pow(2, 32);
@@ -5769,7 +4536,7 @@ function warnPrecision() {
 }
 
 /**
- * Unpack 64-bit unsigned integer from byte array.
+ * Unpacks 64-bit unsigned integer from byte array.
  * @param {Uint8Array} bytes
 */
 function decodeUint64LE(bytes) {
@@ -5794,7 +4561,7 @@ function decodeUint64LE(bytes) {
 }
 
 /**
- * Unpack 64-bit signed integer from byte array.
+ * Unpacks 64-bit signed integer from byte array.
  * @param {Uint8Array} bytes
 */
 function decodeInt64LE(bytes) {
@@ -5820,9 +4587,9 @@ function decodeInt64LE(bytes) {
 }
 
 /**
- * Unpack typed array from byte array.
+ * Unpacks typed array from byte array.
  * @param {Uint8Array} bytes
- * @param {type} ArrayType - Desired output array type
+ * @param {type} ArrayType - desired output array type
 */
 function decodeNativeArray(bytes, ArrayType) {
   var byteLen = bytes.byteLength;
@@ -5832,10 +4599,9 @@ function decodeNativeArray(bytes, ArrayType) {
 }
 
 /**
- * Supports a subset of draft CBOR typed array tags:
- *     <https://tools.ietf.org/html/draft-ietf-cbor-array-tags-00>
- *
- * Only supports little-endian tags for now.
+ * Support a subset of draft CBOR typed array tags:
+ *   <https://tools.ietf.org/html/draft-ietf-cbor-array-tags-00>
+ * Only support little-endian tags for now.
  */
 var nativeArrayTypes = {
   64: Uint8Array,
@@ -5857,7 +4623,7 @@ var conversionArrayTypes = {
 };
 
 /**
- * Handle CBOR typed array tags during decoding.
+ * Handles CBOR typed array tags during decoding.
  * @param {Uint8Array} data
  * @param {Number} tag
  */
@@ -5876,20 +4642,15 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = cborTypedArrayTagger;
 }
 
-},{}],45:[function(require,module,exports){
-exports.DOMImplementation = window.DOMImplementation;
-exports.XMLSerializer = window.XMLSerializer;
-exports.DOMParser = window.DOMParser;
-
-},{}],46:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 module.exports = typeof window !== 'undefined' ? window.WebSocket : WebSocket;
 
-},{}],47:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 /* global document */
 module.exports = function Canvas() {
 	return document.createElement('canvas');
 };
-},{}],48:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 /**
  * @fileOverview
  * @author Graeme Yeates - github.com/megawac
@@ -5906,9 +4667,9 @@ var Image = Canvas.Image || window.Image;
  * "image" in a canvas element then decodes the * "image" as a Base64 string.
  *
  * @private
- * @param data - An object containing the PNG data.
- * @param callback - Function with the following params:
- * @param callback.data - The uncompressed data.
+ * @param data - object containing the PNG data.
+ * @param callback - function with params:
+ *   * data - the uncompressed data
  */
 function decompressPng(data, callback) {
   // Uncompresses the data before sending it through (use image/canvas to do so).
@@ -5947,13 +4708,13 @@ function decompressPng(data, callback) {
 
 module.exports = decompressPng;
 
-},{"canvas":47}],49:[function(require,module,exports){
-try {
-    var work = require('webworkify');
-} catch(ReferenceError) {
-    // webworkify raises ReferenceError when required inside webpack
-    var work = require('webworkify-webpack');
-}
+},{"canvas":44}],46:[function(require,module,exports){
+exports.DOMImplementation = window.DOMImplementation;
+exports.XMLSerializer = window.XMLSerializer;
+exports.DOMParser = window.DOMParser;
+
+},{}],47:[function(require,module,exports){
+var work = require('webworkify');
 var workerSocketImpl = require('./workerSocketImpl');
 
 function WorkerSocket(uri) {
@@ -5998,7 +4759,7 @@ WorkerSocket.prototype.close = function() {
 
 module.exports = WorkerSocket;
 
-},{"./workerSocketImpl":50,"webworkify":7,"webworkify-webpack":6}],50:[function(require,module,exports){
+},{"./workerSocketImpl":48,"webworkify":5}],48:[function(require,module,exports){
 var WebSocket = WebSocket || require('ws');
 
 module.exports = function(self) {
@@ -6048,4 +4809,4 @@ module.exports = function(self) {
   });
 };
 
-},{"ws":46}]},{},[9]);
+},{"ws":43}]},{},[7]);
