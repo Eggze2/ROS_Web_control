@@ -1,24 +1,30 @@
 <template>
-  <div class="outer-container">
-    <div class="container">
-      <div id="joyDiv" class="joy-container">
-
+  <div class="joy-control">
+    <div class="gamepad">
+      <!-- Xbox Button Layout -->
+      <div class="dpad">
+        <div class="button" :class="{ pressed: gamepadButtons[14]?.pressed }">←</div>
+        <div class="button" :class="{ pressed: gamepadButtons[13]?.pressed }">↓</div>
+        <div class="button" :class="{ pressed: gamepadButtons[15]?.pressed }">→</div>
+        <div class="button" :class="{ pressed: gamepadButtons[12]?.pressed }">↑</div>
       </div>
-      <div class="input-container">
-        <label for="posizioneX">Posizione X:</label>
-        <input id="posizioneX" type="text" />
-        <br>
-        <label for="posizioneY">Posizione Y:</label>
-        <input id="posizioneY" type="text" />
-        <br>
-        <label for="direzione">Direzione:</label>
-        <input id="direzione" type="text" />
-        <br>
-        <label for="X">X:</label>
-        <input id="X" type="text" />
-        <br>
-        <label for="Y">Y:</label>
-        <input id="Y" type="text" />
+      <div class="face-buttons">
+        <div class="button" :class="{ pressed: gamepadButtons[0]?.pressed }">A</div>
+        <div class="button" :class="{ pressed: gamepadButtons[1]?.pressed }">B</div>
+        <div class="button" :class="{ pressed: gamepadButtons[2]?.pressed }">X</div>
+        <div class="button" :class="{ pressed: gamepadButtons[3]?.pressed }">Y</div>
+      </div>
+      <div class="shoulder-buttons">
+        <div class="button" :class="{ pressed: gamepadButtons[4]?.pressed }">LB</div>
+        <div class="button" :class="{ pressed: gamepadButtons[5]?.pressed }">RB</div>
+      </div>
+      <div class="triggers">
+        <div class="button" :class="{ pressed: gamepadButtons[6]?.pressed }">LT</div>
+        <div class="button" :class="{ pressed: gamepadButtons[7]?.pressed }">RT</div>
+      </div>
+      <div class="joysticks">
+        <canvas ref="leftJoystick" width="100" height="100"></canvas>
+        <canvas ref="rightJoystick" width="100" height="100"></canvas>
       </div>
     </div>
   </div>
@@ -27,114 +33,151 @@
 <script>
 export default {
   name: 'JoyControl',
+  data() {
+    return {
+      gamepadIndex: null,
+      gamepadButtons: [],
+      gamepadAxes: [],
+      ros: null,
+      cmdVel: null,
+    };
+  },
   mounted() {
-    this.loadScripts().then(() => {
-      this.setupJoyStick();
-    });
+    window.addEventListener("gamepadconnected", this.connectHandler);
+    window.addEventListener("gamepaddisconnected", this.disconnectHandler);
+    this.poll();
+    this.initROS();
   },
   methods: {
-    loadScripts() {
-      const scripts = [
-        '/js/eventemitter2.js',
-        '/js/roslib.js',
-        '/js/mjpegcanvas.min.js',
-        '/js/joy.js' // Ensure joy.js is included
-      ];
-      return Promise.all(
-          scripts.map((src) => {
-            return new Promise((resolve, reject) => {
-              const script = document.createElement('script');
-              script.src = src;
-              script.onload = resolve;
-              script.onerror = reject;
-              document.head.appendChild(script);
-            });
-          })
-      );
+    initROS() {
+      this.ros = new window.ROSLIB.Ros({
+        url: 'ws://localhost:9090'
+      });
+
+      this.cmdVel = new window.ROSLIB.Topic({
+        ros: this.ros,
+        name: '/cmd_vel',
+        messageType: 'geometry_msgs/Twist'
+      });
     },
-    setupJoyStick() {
-      const joy = new window.JoyStick('joyDiv');
+    connectHandler(event) {
+      this.gamepadIndex = event.gamepad.index;
+      this.updateGamepadState();
+    },
+    disconnectHandler() {
+      this.gamepadIndex = null;
+    },
+    poll() {
+      if (this.gamepadIndex !== null) {
+        this.updateGamepadState();
+      }
+      requestAnimationFrame(this.poll);
+    },
+    updateGamepadState() {
+      const gamepad = navigator.getGamepads()[this.gamepadIndex];
+      if (gamepad) {
+        this.gamepadButtons = gamepad.buttons.map((button, index) => ({
+          index,
+          pressed: button.pressed,
+          value: button.value,
+        }));
+        this.gamepadAxes = gamepad.axes.slice();
+        this.handleJoystickInput();
+      }
+    },
+    handleJoystickInput() {
+      const leftX = this.gamepadAxes[2];
+      const leftY = this.gamepadAxes[1];
 
-      const inputPosX = document.getElementById("posizioneX");
-      const inputPosY = document.getElementById("posizioneY");
-      const direzione = document.getElementById("direzione");
-      const x = document.getElementById("X");
-      const y = document.getElementById("Y");
+      let twist = new window.ROSLIB.Message({
+        linear: { x: 0, y: 0, z: 0 },
+        angular: { x: 0, y: 0, z: 0 }
+      });
 
-      setInterval(() => { inputPosX.value = joy.GetPosX(); }, 50);
-      setInterval(() => { inputPosY.value = joy.GetPosY(); }, 50);
-      setInterval(() => { direzione.value = joy.GetDir(); }, 50);
-      setInterval(() => { x.value = joy.GetX(); }, 50);
-      setInterval(() => { y.value = joy.GetY(); }, 50);
+      twist.linear.x = -leftY * 0.7; // Adjust speed as needed
+      twist.angular.z = -leftX * 0.8; // Adjust turning speed as needed
+
+      this.cmdVel.publish(twist);
+    },
+    updateJoysticks() {
+      const leftCanvas = this.$refs.leftJoystick;
+      const rightCanvas = this.$refs.rightJoystick;
+
+      if (!leftCanvas || !rightCanvas) return;
+
+      const leftCtx = leftCanvas.getContext('2d');
+      const rightCtx = rightCanvas.getContext('2d');
+
+      if (!leftCtx || !rightCtx) return;
+
+      leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
+      rightCtx.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
+
+      const drawJoystick = (ctx, x, y) => {
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2, true);
+        ctx.fillStyle = 'red';
+        ctx.fill();
+      };
+
+      const size = 50;
+      const leftX = this.gamepadAxes[0] * size + size;
+      const leftY = this.gamepadAxes[1] * size + size;
+      const rightX = this.gamepadAxes[2] * size + size;
+      const rightY = this.gamepadAxes[3] * size + size;
+
+      drawJoystick(leftCtx, leftX, leftY);
+      drawJoystick(rightCtx, rightX, rightY);
     }
   }
 };
 </script>
 
 <style scoped>
-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-  background-color: #1e1e1e; /* Dark background color */
-}
-
-.outer-container {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.container {
+.joy-control {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 300px; /* Adjusted width to make background narrower */
-  background-color: #1e1e1e;
-  border: 2px solid #2b2b2b;
-  padding: 20px;
-  border-radius: 10px;
 }
 
-.joy-container {
-  width: 300px;
-  height: 300px;
+.gamepad {
+  display: grid;
+  grid-template-areas:
+    "dpad face-buttons"
+    "joysticks shoulder-buttons"
+    "joysticks triggers";
+  gap: 10px;
+}
+
+.dpad, .face-buttons, .shoulder-buttons, .triggers, .joysticks {
   display: flex;
+  flex-wrap: wrap;
+}
+
+.button {
+  width: 50px;
+  height: 50px;
+  margin: 5px;
+  display: flex;
+  justify-content: center;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 50%;
 }
 
-.joystick-image {
-  width: 100%;
-  height: auto;
+.button.pressed {
+  background-color: red;
 }
 
-.input-container {
+.joysticks {
   display: flex;
-  flex-direction: column;
+  justify-content: space-around;
   width: 100%;
-  max-width: 200px;
-  color: #ffffff;
-  background-color: #2b2b2b;
-  padding: 20px;
-  border-radius: 10px;
 }
 
-.input-container label {
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-.input-container input {
-  margin-bottom: 10px;
-  padding: 5px;
-  border: 1px solid #444444;
-  border-radius: 5px;
-  background-color: #333333;
-  color: #ffffff;
+canvas {
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  border-radius: 50%;
 }
 </style>

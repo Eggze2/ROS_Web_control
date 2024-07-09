@@ -18,8 +18,9 @@ rosrun tf2_web_republisher tf2_web_republisher
 ```
 With wpr simulation
 ```bash
-roslaunch wpr_simulation wpb_demo_nav.launch
 roslaunch wpr_simulation wpb_stage_robocup.launch
+roslaunch wpr_simulation wpb_demo_nav.launch
+rosrun robot_pose_publisher robot_pose_publisher
 ```
 
 ## 2. 浏览器

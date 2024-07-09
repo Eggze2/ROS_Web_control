@@ -3,16 +3,6 @@
 </template>
 
 <script>
-// import { ROSLIB } from '/js/roslib.js';
-// import { ROS2D } from '/js/ros2d.js';
-// import { NAV } from '/js/Nav.js';
-// import { SCAN } from '/js/Scan.js';
-
-// eslint-disable-next-line no-unused-vars
-import createjs from "createjs-npm";
-
-
-
 export default {
   name: 'Nav2D',
   mounted() {

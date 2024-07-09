@@ -36,7 +36,7 @@
     top: 0;
     left: 0;
     height: 100vh;
-    width: 800px; /* Adjust width as needed */
+    width: 600px; /* Adjust width as needed */
     background-color: #f5f5f5;
     border-right: 2px solid #3f51b5;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
