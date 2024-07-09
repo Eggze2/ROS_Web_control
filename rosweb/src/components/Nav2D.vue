@@ -17,7 +17,9 @@ export default {
   name: 'Nav2D',
   mounted() {
     this.loadScripts().then(() => {
-      this.init();
+      this.$nextTick(() => {
+        this.init();
+      });
     });
   },
   methods: {
@@ -29,6 +31,7 @@ export default {
 
         '/js/roslib.js',
         '/js/ros2d.js',
+        '/js/ros3d.js',
         '/js/RosCanvas.js',
         '/js/goalPoint.js',
         '/js/pointCloud.js',
@@ -59,8 +62,8 @@ export default {
 
       const viewer = new window.ROS2D.Viewer({
           divID: 'nav2d',
-          width: 800,
-          height: 600
+          width: 2016,
+          height: 3680
         });
 
       new window.NAV.OccupancyGridClientNav({

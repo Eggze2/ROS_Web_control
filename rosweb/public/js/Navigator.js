@@ -47,7 +47,7 @@ NAV.Navigator = function(options) {
   this.planPath = this.planPath||null;
   var pathListener = new ROSLIB.Topic({
     ros: ros,
-    name: '/move_base/NavfnROS/plan',
+    name: '/move_base/GlobalPlanner/plan',
     messageType: 'nav_msgs/Path',
     throttle_rate: NAV.THROTTLE_RATE
   });
