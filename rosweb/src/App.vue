@@ -21,7 +21,7 @@ import ContinuousMap from './components/ContinuousMap.vue';
 import CameraPointCloud from './components/CameraPointCloud.vue';
 import JoyControl from './components/JoyControl.vue';
 import KeyboardControl from './components/KeyboardTeleopControl.vue';
-import RosbagViewer from './components/RosbagViewer.vue';
+import URDFViewer from './components/URDFViewer.vue';
 import TwoDMapViewer from './components/TwoDMapViewer.vue';
 import MarkerTopic from './components/MarkerTopic.vue';
 import MathComponent from './components/Math.vue';
@@ -41,7 +41,7 @@ export default {
         { id: 2, name: 'Camera Point Cloud', component: 'CameraPointCloud' },
         { id: 3, name: 'Joy Control', component: 'JoyControl' },
         { id: 4, name: 'Keyboard Control', component: 'KeyboardControl' },
-        { id: 5, name: 'Rosbag Viewer', component: 'RosbagViewer' },
+        { id: 5, name: 'URDF Viewer', component: 'URDFViewer' },
         { id: 6, name: '2D Map Viewer', component: 'TwoDMapViewer' },
         { id: 7, name: 'Marker Topic', component: 'MarkerTopic' },
         { id: 8, name: 'Math', component: 'MathComponent' },
@@ -67,7 +67,7 @@ export default {
     CameraPointCloud,
     JoyControl,
     KeyboardControl,
-    RosbagViewer,
+    URDFViewer,
     TwoDMapViewer,
     MarkerTopic,
     MathComponent,
