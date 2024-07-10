@@ -61,8 +61,8 @@ export default {
           divID: 'nav2d',
           // width: 600,
           // height: 800
-          width: 2016,
-          height: 3680
+          width: 1000,
+          height: 1500
         });
 
       new window.NAV.OccupancyGridClientNav({
@@ -74,7 +74,7 @@ export default {
 
       new window.NAV.controller(ros,'/cmd_vel_mux/input/teleop', 'controller_show_div')
       
-    //   const showTopics = new window.SCAN.topicShowAll(ros,"show_all");
+      const showTopics = new window.SCAN.topicShowAll(ros,"show_all");
           // pointCloud Scan
       const cloudScan = new window.SCAN.cloudScan({
           ros : ros,
@@ -95,7 +95,7 @@ export default {
       // Find out exactly when we made a connection.
       ros.on('connection', function() {
         console.log('Connection made!');
-        // showTopics.update();
+        showTopics.update();
         viewer.scene.addChild(cloudScan.poindCloud);
         // document.querySelector('#rosStatus').className = ("connected_state");
         // document.querySelector('#rosStatus').innerText = " Connected.";

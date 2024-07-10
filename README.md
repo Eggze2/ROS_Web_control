@@ -34,3 +34,5 @@ npm run serve
 ## 3. 参考资料
 
 `git clone https://github.com/EESC-LabRoM/rosweb.git`
+
+rosrun robot_pose_publisher robot_pose_publisher
