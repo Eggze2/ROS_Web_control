@@ -2,7 +2,22 @@
   <div class="outer-container">
     <div class="scroll-container">
       <div class="container">
-        <p>Vector and Quaternion operations will be shown in the console.</p>
+        <p>Enter data for Vector and Quaternion operations:</p>
+        <div class="input-container">
+          <h3>Vector Input:</h3>
+          <div v-for="(value, key) in vectorInput" :key="key" class="input-item">
+            <label>{{ key }}:</label>
+            <input type="number" v-model.number="vectorInput[key]" />
+          </div>
+        </div>
+        <div class="input-container">
+          <h3>Quaternion Input:</h3>
+          <div v-for="(value, key) in quaternionInput" :key="key" class="input-item">
+            <label>{{ key }}:</label>
+            <input type="number" v-model.number="quaternionInput[key]" />
+          </div>
+        </div>
+        <button @click="performOperations">Calculate</button>
         <div class="result-container">
           <h3>Vector Operations Result:</h3>
           <div v-for="(value, key) in vectorResult" :key="key" class="result-item">
@@ -36,15 +51,15 @@ export default {
   name: 'MathOperations',
   data() {
     return {
+      vectorInput: { x: 0, y: 0, z: 0 },
+      quaternionInput: { x: 0, y: 0, z: 0, w: 1 },
       vectorResult: {},
       quaternionResult: {},
       poseResult: {}
     };
   },
   mounted() {
-    this.loadScripts().then(() => {
-      this.init();
-    });
+    this.loadScripts();
   },
   methods: {
     loadScripts() {
@@ -65,11 +80,11 @@ export default {
           })
       );
     },
-    init() {
+    performOperations() {
       const v1 = new ROSLIB.Vector3({
-        x: 1,
-        y: 2,
-        z: 3
+        x: this.vectorInput.x,
+        y: this.vectorInput.y,
+        z: this.vectorInput.z
       });
       const v2 = v1.clone();
       v1.add(v2);
@@ -77,10 +92,10 @@ export default {
       this.vectorResult = { x: v1.x, y: v1.y, z: v1.z };
 
       const q1 = new ROSLIB.Quaternion({
-        x: 0.1,
-        y: 0.2,
-        z: 0.3,
-        w: 0.4
+        x: this.quaternionInput.x,
+        y: this.quaternionInput.y,
+        z: this.quaternionInput.z,
+        w: this.quaternionInput.w
       });
       const q2 = q1.clone();
       q1.multiply(q2);
@@ -165,6 +180,7 @@ body {
   box-sizing: border-box;
 }
 
+.input-container,
 .result-container {
   margin: 20px 0;
   background-color: #2b2b2b;
@@ -174,6 +190,7 @@ body {
   width: 100%;
 }
 
+.input-item,
 .result-item {
   margin-bottom: 10px;
   display: flex;
@@ -181,11 +198,13 @@ body {
   align-items: center;
 }
 
+.input-item label,
 .result-item label {
   margin-bottom: 5px;
   font-weight: bold;
 }
 
+.input-item input,
 .result-item input {
   padding: 5px;
   border: 1px solid #444444;
@@ -194,5 +213,16 @@ body {
   color: #ffffff;
   width: 100%;
   text-align: center;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 20px 0;
 }
 </style>

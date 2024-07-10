@@ -124,10 +124,10 @@ export default {
 
       switch (event.key) {
         case 'w':
-          twist.linear.x = 0.7;
+          twist.linear.x = 0.5;
           break;
         case 's':
-          twist.linear.x = -0.7;
+          twist.linear.x = -0.5;
           break;
         case 'a':
           twist.angular.z = 0.8;
