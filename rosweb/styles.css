@@ -4,7 +4,8 @@ body, html {
     padding: 0;
     height: 100%;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f0f0f0; /* 浅灰色背景 */
+    background: linear-gradient(135deg, #1f1c2c, #928dab); /* 渐变背景 */
+    overflow: hidden; /* 防止滚动条 */
 }
 
 /* 布局容器 */
@@ -24,81 +25,254 @@ body, html {
 /* 左侧栏目样式 */
 .sidebar.left {
     width: 300px;
-    background: #3f51b5; /* 主色调 */
-    color: white; /* 白色字体 */
+    background: rgba(63, 81, 181, 0.9); /* 半透明主色调 */
+    color: white;
     padding: 20px;
     box-sizing: border-box;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    backdrop-filter: blur(10px); /* 背景模糊效果 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 盒子阴影 */
 }
 
 .sidebar.left h2 {
     margin-top: 0;
-    border-bottom: 1px solid #ffffff; /* 增加标题下的分割线 */
+    border-bottom: 1px solid #ffffff;
+    padding-bottom: 10px;
+}
+
+.sidebar.left ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar.left li {
+    margin: 10px 0;
+}
+
+.sidebar.left button {
+    width: 100%;
+    padding: 15px; /* 增加按钮的大小 */
+    cursor: pointer;
+    background: #283ba2; /* 固定背景色 */
+    color: white;
+    border: none;
+    border-radius: 10px; /* 圆角 */
+    transition: transform 0.3s, background 0.3s; /* 增加浮动效果 */
+}
+
+.sidebar.left button:hover {
+    transform: translateY(-5px); /* 悬停时上浮 */
+    background: #071044; /* 悬停时背景色变化 */
+}
+
+.sidebar.left input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 5px;
+}
+
+.add-task-form {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* 主要内容区域 */
 .main {
     flex-grow: 1;
-    background: url('map.png') no-repeat center center; /* 背景图片 */
-    background-size: cover; /* 图片覆盖整个区域 */
     display: flex;
     flex-direction: column;
-    padding: 0;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 0 20px;
     box-sizing: border-box;
+    background: none;
+}
+
+.homepage {
+    max-width: 800px;
+    margin: 0 auto;
+    color: white;
+    animation: fadeIn 1s ease-in-out;
+}
+
+.title {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    position: relative;
+    font-family: 'Orbitron', sans-serif; /* 科技感字体 */
+}
+
+.title::before {
+    content: "";
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 2px;
+    background-color: white;
+}
+
+.description {
+    font-size: 1.2em;
+    margin-bottom: 40px;
+}
+
+.features {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+
+.feature {
+    width: 30%;
+    min-width: 200px;
+    margin: 10px;
+    text-align: center;
+}
+
+.feature .icon {
+    margin-bottom: 20px;
+}
+
+.feature .icon img {
+    width: 80px;
+    height: 80px;
+    animation: bounce 2s infinite;
+}
+
+.feature h3 {
+    margin-bottom: 10px;
+    font-size: 1.5em;
+    font-family: 'Roboto', sans-serif; /* 标题字体 */
+}
+
+.feature p {
+    font-size: 1em;
+    line-height: 1.5;
+    font-family: 'Arial', sans-serif; /* 正文字体 */
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-30px);
+    }
+    60% {
+        transform: translateY(-15px);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 /* 底部栏目样式 */
 .sidebar.bottom {
-    height: 200px;
-    background: #3f51b5; /* 主色调 */
-    color: white; /* 白色字体 */
+    background: rgba(63, 81, 181, 0.9);
+    color: white;
     padding: 20px;
     box-sizing: border-box;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.vehicle-container {
+    width: 18%;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: slideIn 1s forwards;
+}
+
+.vehicle-container h2 {
+    margin-top: 0;
     text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start; /* 左对齐内容 */
-    position: relative; /* 确保底部栏始终在底部 */
+    font-size: 1.2em;
 }
 
-/* 车辆状态样式 */
-.sidebar.bottom h2 {
-    border-bottom: 1px solid #ffffff; /* 增加标题下的分割线 */
+.vehicle-container .vehicle-details {
+    width: 100%;
+    display: none;
 }
 
-.vehicle-status {
-    margin: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start; /* 左对齐车辆状态 */
+.vehicle-container.expanded .vehicle-details {
+    display: block;
 }
 
 .vehicle-image {
-    width: 100px;
-    height: 100px;
-    margin-right: 20px;
+    width: 80px;
+    height: 80px;
+    margin-bottom: 10px;
+    border-radius: 50%; /* 圆形图片 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.vehicle-details p {
+    margin: 5px 0;
+    white-space: nowrap;
 }
 
 /* 通用按钮样式 */
 button {
-    padding: 10px 20px;
-    margin: 5px 0;
+    padding: 12px 20px; /* 增加按钮的大小 */
+    margin: 10px 0;
     cursor: pointer;
-    background-color: #303f9f; /* 深蓝色 */
-    color: white; /* 白色字体 */
+    background: #3f51b5; /* 固定背景色 */
+    color: white;
     border: none;
-    border-radius: 5px;
-    transition: background-color 0.3s;
+    border-radius: 10px; /* 圆角 */
+    transition: transform 0.3s, background 0.3s; /* 增加浮动效果 */
 }
 
 button:hover {
-    background-color: #1e2d73; /* 深色悬停效果 */
+    transform: translateY(-5px); /* 悬停时上浮 */
+    background: #303f9f; /* 悬停时背景色变化 */
 }
 
 button:disabled {
-    background-color: #ccc; /* 灰色 */
+    background: #ccc;
 }
 
 /* 输入框样式 */
@@ -108,6 +282,7 @@ input[type="text"], input[type="number"] {
     width: 100%;
     border: 1px solid #ddd;
     border-radius: 4px;
+    animation: fadeIn 1s ease-in-out; /* 加载动画 */
 }
 
 /* 任务列表样式 */
@@ -118,14 +293,15 @@ input[type="text"], input[type="number"] {
 
 .task-list li {
     margin-bottom: 10px;
-    background: #ffffff; /* 白色背景 */
+    background: rgba(255, 255, 255, 0.8); /* 半透明白色背景 */
     padding: 10px;
     border-radius: 5px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: #000; /* 黑色字体 */
+    color: #000;
+    animation: slideIn 1s forwards;
 }
 
 .task-list li .task-details {
@@ -152,58 +328,42 @@ input[type="text"], input[type="number"] {
     color: red;
 }
 
-/* 添加任务表单样式 */
-.add-task-form {
-    background: #ffffff; /* 白色背景 */
-    padding: 20px;
-    border-radius: 5px;
-    margin-bottom: 20px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
-}
-
-/* 目标点输入框容器样式 */
-.target-input {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-}
-
-.target-input label {
-    flex: 1;
-    margin-right: 10px;
-}
-
-.target-input input {
-    flex: 2;
-    margin-right: 5px;
-}
-
-/* 禁用状态下的目标点输入框样式 */
-.disabled {
-    background-color: #e0e0e0; /* 浅灰色背景 */
-    pointer-events: none;
-}
-
 /* 创建成功提示样式 */
 .alert {
     position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 30%; 
+    left: 20%; 
+    transform: translate(-50%, -50%);
     padding: 10px;
-    background-color: #3f51b5; /* 主色调 */
-    color: white; /* 白色字体 */
+    background-color: #3f51b5;
+    color: white;
     border-radius: 5px;
     z-index: 1000;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); /* 轻微阴影 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* 动画效果 */
-@keyframes showAlert {
-    to {
+@keyframes fadeIn {
+    from {
         opacity: 0;
-        transform: translateY(-20px);
+        transform: translateY(20px);
     }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 1s;
+}
+
+.fade-in-button {
+    animation: fadeIn 1s ease-in-out;
+}
+
+.slide-in {
+    animation: slideIn 1s forwards;
 }
 
 /* 确认对话框样式 */
@@ -212,12 +372,41 @@ input[type="text"], input[type="number"] {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: #ffffff; /* 白色背景 */
+    background-color: #ffffff;
     padding: 20px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
     border-radius: 5px;
     z-index: 1001;
     text-align: center;
+}
+
+/* 修改参数弹窗样式 */
+.update-params-form {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    z-index: 1001;
+    text-align: center;
+}
+
+.update-params-form h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.update-params-form label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.update-params-form input {
+    margin-bottom: 20px;
+    width: 100%;
 }
 
 /* 车辆选择弹窗样式 */
@@ -226,9 +415,37 @@ input[type="text"], input[type="number"] {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: #ffffff; /* 白色背景 */
+    background-color: #ffffff;
     padding: 20px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    z-index: 1001;
+    text-align: center;
+}
+
+/* 重命名弹窗样式 */
+.rename-vehicle-form {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    z-index: 1001;
+    text-align: center;
+}
+
+/* 车辆详情弹窗样式 */
+.vehicle-details-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
     border-radius: 5px;
     z-index: 1001;
     text-align: center;

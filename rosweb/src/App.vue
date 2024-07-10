@@ -20,9 +20,7 @@
 import ContinuousMap from './components/ContinuousMap.vue';
 import CameraPointCloud from './components/CameraPointCloud.vue';
 import JoyControl from './components/JoyControl.vue';
-import KeyboardControl from './components/KeyboardTeleopControl.vue';
 import URDFViewer from './components/URDFViewer.vue';
-import TwoDMapViewer from './components/TwoDMapViewer.vue';
 import MarkerTopic from './components/MarkerTopic.vue';
 import MathComponent from './components/Math.vue';
 import MultiStream from './components/MultiStream.vue';
@@ -41,17 +39,15 @@ export default {
         { id: 1, name: 'Continuous Map', component: 'ContinuousMap' },
         { id: 2, name: 'Camera Point Cloud', component: 'CameraPointCloud' },
         { id: 3, name: 'Joy Control', component: 'JoyControl' },
-        { id: 4, name: 'Keyboard Control', component: 'KeyboardControl' },
-        { id: 5, name: 'URDF Viewer', component: 'URDFViewer' },
-        { id: 6, name: '2D Map Viewer', component: 'TwoDMapViewer' },
-        { id: 7, name: 'Marker Topic', component: 'MarkerTopic' },
-        { id: 8, name: 'Math', component: 'MathComponent' },
-        { id: 9, name: 'Multi Stream', component: 'MultiStream' },
-        { id: 10, name: 'Camera Image', component: 'CameraImage' },
-        { id: 11, name: 'Nav2D', component: 'Nav2D' },
-        { id: 12, name: 'Laser Scan', component: 'LaserScan' },
-        { id: 13, name: 'Tf Viewer', component: 'TfViewer' },
-        { id: 14, name: 'Point Navigation', component: 'PointNavigation'},
+        { id: 4, name: 'URDF Viewer', component: 'URDFViewer' },
+        { id: 5, name: 'Marker Topic', component: 'MarkerTopic' },
+        { id: 6, name: 'Math', component: 'MathComponent' },
+        { id: 7, name: 'Multi Stream', component: 'MultiStream' },
+        { id: 8, name: 'Camera Image', component: 'CameraImage' },
+        { id: 9, name: 'Nav2D', component: 'Nav2D' },
+        { id: 10, name: 'Laser Scan', component: 'LaserScan' },
+        { id: 11, name: 'Tf Viewer', component: 'TfViewer' },
+        { id: 12, name: 'Point Navigation', component: 'PointNavigation'},
       ],
       selectedItem: { id: 1, component: 'ContinuousMap' },
     };
@@ -68,9 +64,7 @@ export default {
     ContinuousMap,
     CameraPointCloud,
     JoyControl,
-    KeyboardControl,
     URDFViewer,
-    TwoDMapViewer,
     MarkerTopic,
     MathComponent,
     MultiStream,
