@@ -16,24 +16,19 @@ export default {
     loadScripts() {
       const scripts = [
         '/js/eventemitter2.js',
-        // '/js/createjs.js',
         '/js/easeljs.js',
-
         '/js/roslib.js',
         '/js/ros2d.js',
         '/js/ros3d.js',
         '/js/RosCanvas.js',
         '/js/goalPoint.js',
-        
         '/js/pointCloud.js',
         '/js/NavigationArrow.js',
         '/js/Nav.js',
         '/js/ClientNav.js',
         '/js/Navigator.js',
         '/js/NavController.js',
-        '/js/Scan.js'
-        
-        // '/js/index.js'
+        '/js/Scan.js'        
       ];
       return Promise.all(
         scripts.map(script => {
