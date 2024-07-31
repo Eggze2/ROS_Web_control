@@ -14,8 +14,8 @@ RosCanvas.NavigationArrow = function(options) {
   options = options || {};
   var size = options.size || 10;
   var strokeSize = options.strokeSize || 3;
-  var strokeColor = options.strokeColor || '#000000'; // 边框颜色
-  var fillColor = options.fillColor || ['#ff4b1f', '#ff9068']; // 渐变颜色
+  var strokeColor = options.strokeColor || createjs.Graphics.getRGB(0, 0, 0);
+  var fillColor = options.fillColor || createjs.Graphics.getRGB(255, 0, 0);
   var pulse = options.pulse;
 
   // draw the arrow

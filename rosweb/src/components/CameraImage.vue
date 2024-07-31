@@ -79,8 +79,8 @@ export default {
 
       this.imageTopic = new window.ROSLIB.Topic({
         ros: this.ros,
-        name: '/camera/image_raw/compressed',
-        messageType: 'sensor_msgs/CompressedImage'
+        name: '/kinect2/qhd/image_color_rect',
+        messageType: 'sensor_msgs/Image'
       });
 
       this.imageTopic.subscribe(this.displayImage);

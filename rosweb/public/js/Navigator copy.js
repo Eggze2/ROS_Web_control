@@ -54,94 +54,16 @@ NAV.Navigator = function(options) {
    // that.rootObject.addChild(that.planPath);
   
   // this.rootObject.addChild(this.planPath);
-//   var updatePath = function(plan) {
-//     var plan = plan.poses; // 假设pathMsg是完整的nav_msgs/Path消息对象
-
-//     if (!that.planPath) {
-//         // 创建新的路径图形
-//         that.planPath = new createjs.Shape();
-
-//         // 获取图形的绘图上下文
-//         var g = that.planPath.graphics;
-//         g.setStrokeStyle(0.05); // 设置线宽
-//         // 使用更柔和的颜色
-//         g.beginStroke("rgba(135, 206, 250, 0.8)"); // 淡蓝色，增加透明度
-//         // 绘制路径
-//         g.moveTo(plan[0].pose.position.x, -plan[0].pose.position.y);
-//         for (var i = 1; i < plan.length; i++) {
-//             g.lineTo(plan[i].pose.position.x, -plan[i].pose.position.y);
-//         }
-//         g.endStroke();
-
-//         // 添加外发光效果
-//         that.planPath.shadow = new createjs.Shadow("rgba(135, 206, 250, 1)", 0, 0, 10);
-
-//         that.rootObject.addChild(that.planPath);
-//     } else {
-//         that.rootObject.removeChild(that.planPath);
-//         that.planPath.graphics.clear();
-        
-//         // 重新应用颜色和路径绘制逻辑
-//         var g = that.planPath.graphics;
-//         g.setStrokeStyle(0.05); // 设置线宽
-//         g.beginStroke("rgba(135, 206, 250, 0.8)"); // 淡蓝色
-//         g.moveTo(plan[0].pose.position.x, -plan[0].pose.position.y);
-//         for (var i = 1; i < plan.length; i++) {
-//             g.lineTo(plan[i].pose.position.x, -plan[i].pose.position.y);
-//         }
-//         g.endStroke();
-//         // 重新添加外发光效果
-//         that.planPath.shadow = new createjs.Shadow("rgba(135, 206, 250, 1)", 0, 0, 10);
-
-//         that.rootObject.addChild(that.planPath);
-//     }
-// }
-var updatePath = function(plan) {
-  if (!that.planPath) {
-      that.planPath = new createjs.Shape();
+  var updatePath = function(plan){
+    if(!that.planPath){
+      that.planPath =  new ROS2D.PathShape({path:plan,strokeSize:0.03,strokeColor:createjs.Graphics.getRGB(94, 82, 125, 0.7)})
       that.rootObject.addChild(that.planPath);
-  } else {
+    }else{
       that.rootObject.removeChild(that.planPath);
-      that.planPath.graphics.clear();
+      that.planPath.setPath(plan);
       that.rootObject.addChild(that.planPath);
+    }
   }
-
-  var g = that.planPath.graphics;
-  g.setStrokeStyle(0.05, 'round', 'round'); // 设置基础线宽
-  var length = plan.poses.length;
-
-  // 绘制路径
-  for (var i = 0; i < length - 1; i++) {
-      // 计算颜色渐变和线宽
-      var color = createjs.Graphics.getHSL(240, 100, 50 + (50 * i / length));
-      // var lineWidth = 0.05 + (2 * (i / length)); // 线宽从0.05到2渐变
-      var lineWidth = 0.05 
-      g.setStrokeStyle(lineWidth, 'round', 'round');
-      g.beginStroke(color);
-
-      var startPos = plan.poses[i].pose.position;
-      var endPos = plan.poses[i + 1].pose.position;
-      g.moveTo(startPos.x, -startPos.y);
-      g.lineTo(endPos.x, -endPos.y);
-      g.endStroke();
-  }
-
-  // 添加外发光效果
-  that.planPath.shadow = new createjs.Shadow("rgba(135, 206, 250, 1)", 0, 0, 10);
-}
-
-function midpoint(point1, point2) {
-  return {
-      x: (point1.x + point2.x) / 2,
-      y: (point1.y + point2.y) / 2
-  };
-}
-
-
-
-
-
-  
   pathListener.subscribe(function(plan) {
     if(plan.poses && plan.poses.length>5){
       updatePath(plan)
@@ -233,7 +155,7 @@ function midpoint(point1, point2) {
     robotMarker = new ROS2D.NavigationArrow({
       size : 20,
       strokeSize : 0.1,
-      fillColor :"#e74c3c",
+      fillColor :"#583c8a",
       pulse : true
     });
   }
