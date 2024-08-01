@@ -6,7 +6,7 @@ body, html {
     background-size: cover;
     background-position: center;
     height: 100vh;
-    color: #00FFC6; /* Futuristic bright cyan color */
+    color: #00FFC6; /* 科技感的亮青色 */
     overflow: hidden;
 }
 
@@ -20,46 +20,51 @@ body, html {
 }
 
 .top-bar, .left-menu, .bottom-bar, .charts .chart {
-    background: rgba(20, 20, 20, 0.9); /* Dark background for readability */
+    background: rgba(20, 20, 20, 0.9); /* 深色背景提高可读性 */
     border-radius: 15px;
     padding: 15px;
     margin-bottom: 10px;
     color: #00FFC6;
     font-size: 1.2em;
-    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8); /* Enhances text clarity */
-    border: 1px solid #00FFC6; /* Highlighting border */
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8); /* 增强文本清晰度 */
+    border: 1px solid #00FFC6; /* 增加边框突出显示 */
+}
+
+.left-menu, .bottom-bar {
+    position: absolute;
+    z-index: 10;
 }
 
 .left-menu {
     top: 50px;
     left: 10px;
-    width: 250px; /* Controls the width of the left menu */
-    transform: translateX(-100%); /* Initially hidden */
-    opacity: 0; /* Set initial opacity */
+    width: 250px; /* 控制左侧菜单宽度 */
+    transform: translateX(-100%); /* 初始隐藏 */
+    opacity: 0; /* 初始透明度设置 */
     display: flex;
     flex-direction: column;
-    gap: 20px; /* Increased spacing between menu items */
+    gap: 10px;
 }
 
 .bottom-bar {
     bottom: 10px;
-    width: 100%; /* Use 100% width to fully utilize available space */
+    width: 100%; /* 使用100%宽度，以确保充分利用可用空间 */
     display: flex;
-    flex-wrap: wrap; /* Auto-wrap content */
+    flex-wrap: wrap; /* 内容自动换行 */
     align-items: center;
-    justify-content: space-around; /* Evenly distribute */
-    transform: translateY(0); /* Adjust to visible */
-    opacity: 1; /* Adjust to fully opaque */
+    justify-content: space-around; /* 分布均匀 */
+    transform: translateY(0); /* 调整为可见 */
+    opacity: 1; /* 调整为完全不透明 */
 }
 
 .data-item {
     flex: 1;
     display: flex;
     align-items: center;
-    justify-content: center; /* Center-align each data item */
-    gap: 10px; /* Adjust spacing */
+    justify-content: center; /* 居中显示各项数据 */
+    gap: 10px; /* 调整间距 */
     font-size: 1.1em;
-    margin: 10px 0; /* Increased vertical margins for better spacing */
+    margin: 5px 0; /* 调整上下边距 */
 }
 
 .data-item i {
@@ -74,7 +79,7 @@ body, html {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    opacity: 1; /* Ensure charts are fully visible */
+    opacity: 1; /* 确保图表完全可见 */
 }
 
 .chart {
@@ -104,15 +109,27 @@ canvas {
     font-size: 1.1em;
 }
 
-#temperature-gauge, #speedometer, #signal-strength-chart, #voltage-gauge, #current-gauge, #altitude-gauge, #direction-gauge, #frequency-gauge, #link-quality-gauge {
-    width: 100px;
-    height: 100px;
+#temperature-gauge, #speedometer, #signal-strength-chart {
+    width: 120px; /* 调整为更大的尺寸以提高可读性 */
+    height: 120px;
     margin: 10px;
-    background-color: transparent; /* Set background to transparent, remove unnecessary styles */
+    background-color: transparent; /* 背景设为透明，去除不必要的样式 */
     border: 1px solid #00FFC6;
-    border-radius: 50%; /* Circular shape */
+    border-radius: 60px; /* 圆形 */
     display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
 }
+
+/* #temperature-gauge {
+    background: linear-gradient(to bottom, #ff0000 0%, #ffff00 50%, #00ff00 100%);
+}
+
+#speedometer {
+    background: linear-gradient(to right, #0000ff 0%, #00ff00 50%, #ff0000 100%);
+}
+
+#signal-strength-chart {
+    background: linear-gradient(to top, #000 0%, #fff 100%);
+} */

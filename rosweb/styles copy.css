@@ -1,0 +1,132 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', Arial, sans-serif;
+    background-image: url('image.jpeg');
+    background-size: cover;
+    background-position: center;
+    height: 100vh;
+    color: #00FFC6; /* 科技感的亮青色 */
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-between;
+    position: relative;
+    padding: 10px;
+}
+
+.top-bar, .left-menu, .bottom-bar, .charts .chart {
+    background: rgba(20, 20, 20, 0.9); /* 深色背景 */
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 10px;
+    color: #00FFC6;
+    font-size: 1.2em;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+    border: 1px solid #00FFC6; /* 增加边框 */
+}
+
+.left-menu, .bottom-bar {
+    position: absolute;
+    z-index: 10;
+}
+
+.left-menu {
+    top: 50px;
+    left: 10px;
+    width: 250px; /* 增加宽度 */
+    transform: translateX(-100%);
+    opacity: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.left-menu .menu-item {
+    display: flex;
+    align-items: center;
+}
+
+.left-menu .menu-item i {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+}
+
+.bottom-bar {
+    bottom: 10px;
+    width: calc(100% - 20px);
+    display: flex;
+    flex-wrap: wrap; /* 允许内容换行 */
+    transform: translateY(100%);
+    opacity: 0;
+}
+
+.bottom-bar .logo {
+    width: 50px;
+    height: auto;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.data-item {
+    flex: 1 1 20%;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 1.1em;
+}
+
+.data-item i {
+    font-size: 1.5em;
+}
+
+.charts {
+    position: absolute;
+    top: 100px;
+    right: 10px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    transform: translateY(100%);
+    opacity: 0;
+}
+
+.chart {
+    width: 320px;
+    padding: 20px;
+    border: 1px solid #00FFC6; /* 增加边框 */
+}
+
+canvas {
+    width: 100% !important;
+    height: 220px !important;
+    background-color: transparent;
+    border-radius: 5px;
+}
+
+#gauge-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px; /* 调整高度以适应仪表盘 */
+    flex-direction: column;
+}
+
+.gauge-description {
+    color: #00FFC6;
+    margin-bottom: 5px;
+    font-size: 1.1em;
+}
+
+.gauge {
+    width: 150px;
+    height: 150px;
+    margin: 10px;
+}
